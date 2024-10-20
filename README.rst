@@ -92,10 +92,10 @@ Created by `Shay Palachy Affek <https://github.com/shaypal5>`_ (shay.palachy@gma
    :target: https://pypi.python.org/pypi/jenga
 
 .. |Build-Status| image:: https://github.com/jenga-dev/jenga/actions/workflows/ci-test.yml/badge.svg
-  :target: https://github.com/jenga-dev/jenga/actions/workflows/ci-test.yml
+   :target: https://github.com/jenga-dev/jenga/actions/workflows/ci-test.yml
 
-.. |LICENCE| image:: https://img.shields.io/pypi/l/jenga.svg
-  :target: https://pypi.python.org/pypi/jenga
+.. |LICENCE| image:: https://img.shields.io/badge/License-MIT-ff69b4.svg
+   :target: https://github.com/jenga-dev/jenga
 
 .. |Codecov| image:: https://codecov.io/github/jenga-dev/jenga/coverage.svg?branch=master
    :target: https://codecov.io/github/jenga-dev/jenga?branch=master
@@ -107,7 +107,3 @@ Created by `Shay Palachy Affek <https://github.com/shaypal5>`_ (shay.palachy@gma
 .. |Codefactor| image:: https://www.codefactor.io/repository/github/jenga-dev/jenga/badge?style=plastic
      :target: https://www.codefactor.io/repository/github/jenga-dev/jenga
      :alt: Codefactor code quality
-
-.. links:
-.. _pymongo: https://api.mongodb.com/python/current/
-.. _watchdog: https://github.com/gorakhargosh/watchdog
