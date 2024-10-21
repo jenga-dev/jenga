@@ -6,7 +6,7 @@ from typing import Dict
 
 
 def weidu_log_to_build_file(input_file: str, output_file: str) -> None:
-    """Converts a WeiDU log file to a JSON build file.
+    """Convert a WeiDU log file to a JSON build file.
 
     Parameters
     ----------

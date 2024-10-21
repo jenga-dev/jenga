@@ -3,7 +3,7 @@ from .util import (
     weidu_log_to_build_file,
 )
 
-__all__ = [
+__all__ = [  # noqa: F405
     "jenga",
     "weidu_log_to_build_file",
 ]

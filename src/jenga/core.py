@@ -2,5 +2,5 @@
 
 
 def dummy_function() -> None:
-    """A dummy function that does nothing."""
+    """Do nothing."""
     pass

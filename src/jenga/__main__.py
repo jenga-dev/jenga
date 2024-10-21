@@ -31,7 +31,8 @@ def resume_partial_build(
 
     Parameters
     ----------
-
+    build_file_path : str
+        The path to the build file.
     """
     print(build_file_path)
 
@@ -49,7 +50,8 @@ def convert_weidu_log_to_build_file(
     ----------
     weidu_log_path : str
         The path to the WeiDU log file.
-
+    build_file_path : str
+        The path to the build file to create.
     """
     if build_file_path is None:
         build_file_path = weidu_log_path.replace(".log", ".json")
