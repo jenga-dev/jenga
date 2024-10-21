@@ -35,6 +35,7 @@ dynamic = [
   "version",
 ]
 dependencies = [
+  "fuzzywuzzy",
 ]
 urls.Source = "https://github.com/jenga-dev/jenga"
 scripts.jenga = "jenga.__main__:cli"
