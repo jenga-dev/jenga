@@ -2,15 +2,15 @@ name: PyPI Release
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
-    branches: [master]
+    branches: [main]
   release:
     types: [published]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}-${{ github.head_ref }}
-  cancel-in-progress: ${{ ! (github.ref != 'refs/heads/master' || startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release') }}
+  cancel-in-progress: ${{ ! (github.ref != 'refs/heads/main' || startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release') }}
 
 defaults:
   run:
