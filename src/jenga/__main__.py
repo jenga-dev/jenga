@@ -1,9 +1,10 @@
+
 """Command line interface for the jenga package."""
 
 import typer
 from typing_extensions import Annotated
 
-# from jenga import ?
+from jenga import weidu_log_to_build_file
 
 app = typer.Typer()
 
@@ -37,7 +38,10 @@ def resume_partial_build(
 @app.command()
 def convert_weidu_log_to_build_file(
     weidu_log_path: str,
-    build_file_path: Annotated[str, typer.Option(help="The path to the build file to create.")] = None,
+    build_file_path: Annotated[
+        str,
+        typer.Option(help="The path to the json build file to create.")
+    ] = None,
 ) -> None:
     """Convert a WeiDU log file to a build file.
 
@@ -46,14 +50,21 @@ def convert_weidu_log_to_build_file(
     weidu_log_path : str
         The path to the WeiDU log file.
     """
-    print(weidu_log_path)
-    print(build_file_path)
+    if build_file_path is None:
+        build_file_path = weidu_log_path.replace(".log", ".json")
+    print(
+        "Converting WeiDU log file in:\n"
+        f"{weidu_log_path}\n"
+        "to a Jenga .json build file in:\n"
+        f"{build_file_path}\n..."
+    )
+    weidu_log_to_build_file(weidu_log_path, build_file_path)
 
 
-def main():
+def cli():
     """Run the CLI."""
     app()
 
 
 if __name__ == "__main__":
-    main()
+    cli()
