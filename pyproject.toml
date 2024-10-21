@@ -9,8 +9,8 @@ name = "jenga"
 description = "A basic Python-based, CLI build system for BGII:EET games."
 readme = "README.rst"
 keywords = [
-    "games",
-    "Baldur's Gate",
+  "Baldur's Gate",
+  "games",
 ]
 license = { file = "LICENSE" }
 authors = [
@@ -37,7 +37,7 @@ dynamic = [
 dependencies = [
 ]
 urls.Source = "https://github.com/jenga-dev/jenga"
-scripts.jenga = "cli.main:main"
+scripts.jenga = "jenga.__main__:cli"
 
 [tool.setuptools]
 include-package-data = true
@@ -51,6 +51,7 @@ where = [
 ] # list of folders that contain the packages (["."] by default)
 include = [
   "jenga*",
+  "cli*",
 ] # package names should match these glob patterns (["*"] by default)
 namespaces = false # to disable scanning PEP 420 namespaces (true by default)
 
