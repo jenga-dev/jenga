@@ -1,4 +1,3 @@
-
 """Command line interface for the jenga package."""
 
 import typer
@@ -19,6 +18,7 @@ def run_full_build(
     ----------
     build_file_path : str
         The path to the build file.
+
     """
     print(build_file_path)
 
@@ -31,6 +31,7 @@ def resume_partial_build(
 
     Parameters
     ----------
+
     """
     print(build_file_path)
 
@@ -39,8 +40,7 @@ def resume_partial_build(
 def convert_weidu_log_to_build_file(
     weidu_log_path: str,
     build_file_path: Annotated[
-        str,
-        typer.Option(help="The path to the json build file to create.")
+        str, typer.Option(help="The path to the json build file to create.")
     ] = None,
 ) -> None:
     """Convert a WeiDU log file to a build file.
@@ -49,6 +49,7 @@ def convert_weidu_log_to_build_file(
     ----------
     weidu_log_path : str
         The path to the WeiDU log file.
+
     """
     if build_file_path is None:
         build_file_path = weidu_log_path.replace(".log", ".json")

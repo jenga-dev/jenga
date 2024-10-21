@@ -9,8 +9,8 @@ name = "jenga"
 description = "A basic Python-based, CLI build system for BGII:EET games."
 readme = "README.rst"
 keywords = [
-    "games",
-    "Baldur's Gate",
+  "Baldur's Gate",
+  "games",
 ]
 license = { file = "LICENSE" }
 authors = [

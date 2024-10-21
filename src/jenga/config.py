@@ -5,6 +5,7 @@ import birch
 
 class CfgKey:
     """Configuration keys for jenga."""
+
     WEIDU_EXEC_PATH = "WEIDU_EXEC_PATH"
     BGEE_DIR_PATH = "BGEE_DIR_PATH"
     BGIIEE_DIR_PATH = "BGIIEE_DIR_PATH"
