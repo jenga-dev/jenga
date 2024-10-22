@@ -6,10 +6,16 @@ from .build_runner import (
 )
 from .util import (
     weidu_log_to_json_build_file,
+    weidu_log_to_yaml_build_file,
+)
+from .config import (
+    print_config,
 )
 
 __all__ = [  # noqa: F405
     "jenga",
     "run_build",
     "weidu_log_to_json_build_file",
+    "weidu_log_to_yaml_build_file",
+    "print_config",
 ]

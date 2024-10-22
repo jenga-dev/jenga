@@ -2,13 +2,23 @@
 
 # Standard library imports
 import os
-import json
-import subprocess
 import sys
+import json
+import warnings
+import subprocess
+from typing import Optional
 from datetime import datetime
 
 # Third-party imports
 from fuzzywuzzy import process, fuzz
+
+# Local imports
+from .util import weidu_log_to_build_dict
+from .config import (
+    CFG,
+    CfgKey,
+    get_all_game_dirs,
+)
 
 
 def update_weidu_conf(game_dir: str, language: str) -> None:
@@ -66,14 +76,36 @@ def fuzzy_find(directory: str, name: str, file_type: str = ".tp2") -> str:
         for entry in os.listdir(directory)
         if entry.lower().endswith(file_type)
     ]
-    best_match, score = process.extractOne(
+    result = process.extractOne(
         name.lower(), entries, scorer=fuzz.ratio)
+    if result is None:
+        raise FileNotFoundError(
+            f"Unable to locate {name}{file_type} in {directory}."
+        )
+    best_match, score = result
     if score < 50:
         raise FileNotFoundError(
             f"Unable to locate {name}{file_type} with "
             "sufficient accuracy in {directory.}"
         )
     return os.path.join(directory, best_match)
+
+
+def get_mod_info_from_weidu_log(install_dir: str) -> dict:
+    """Get mod information from WeiDU log file.
+
+    Parameters
+    ----------
+    install_dir : str
+        The directory where the game is installed.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the mod information.
+    """
+    weidu_log_path = os.path.join(install_dir, 'weidu.log')
+    return weidu_log_to_build_dict(weidu_log_path)
 
 
 def execute_mod_installation(
@@ -107,22 +139,22 @@ def execute_mod_installation(
         "--skip-at-view",
         "--force-install-list", install_list
     ]
-    process = subprocess.run(
+    proc = subprocess.run(
         command, stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         check=False,
     )
     # Decode the stdout and stderr
-    stdout_text = process.stdout.decode('utf-8')
-    stderr_text = process.stderr.decode('utf-8')
+    stdout_text = proc.stdout.decode('utf-8')
+    stderr_text = proc.stderr.decode('utf-8')
     # Print stdout and stderr to screen
     print(stdout_text, end='')
     print(stderr_text, end='', file=sys.stderr)
     # Append stdout and stderr to the log file
     with open(log_file, 'ab') as lf:
-        lf.write(process.stdout)
-        lf.write(process.stderr)
-    return process.returncode == 0
+        lf.write(proc.stdout)
+        lf.write(proc.stderr)
+    return proc.returncode == 0
 
 
 def get_start_index_from_build_state_file(state_file_path: str) -> int:
@@ -162,12 +194,48 @@ def write_ongoing_state(
         json.dump(state, f, indent=4)
 
 
+def mod_is_installed_identically(
+    mod_name: str,
+    mod_version: str,
+    installed_components: list,
+    install_info: Optional[dict] = None,
+) -> bool:
+    """Check if the mod is installed identically.
+
+    Parameters
+    ----------
+    mod_name : str
+        The name of the mod.
+    mod_version : str
+        The version of the mod.
+    installed_components : list
+        The list of installed components.
+    install_info : dict, optional
+        The information about the mod installation.
+        If not provided, returns False.
+
+    Returns
+    -------
+    bool
+        Whether the mod is installed identically.
+    """
+    if not install_info:
+        return False
+    return (
+        install_info['mod_name'] == mod_name
+        and install_info['mod_version'] == mod_version
+        and set(install_info['components']) == set(installed_components)
+    )
+
+
 def run_build(
     build_file_path: str,
-    mods_dir: str,
-    weidu_exec_path: str,
-    game_install_dir: str,
-    state_file_path: str = None,
+    extracted_mods_dir: Optional[str] = None,
+    zipped_mods_dir: Optional[str] = None,
+    weidu_exec_path: Optional[str] = None,
+    game_install_dir: Optional[str] = None,
+    state_file_path: Optional[str] = None,
+    skip_installed_mods: Optional[bool] = False,
 ) -> None:
     """Run the build process.
 
@@ -175,22 +243,80 @@ def run_build(
     ----------
     build_file_path : str
         The path to the build file.
-    mods_dir : str
-        The directory containing the mods.
-    weidu_exec_path : str
-        The path to the WeiDU executable.
-    game_install_dir : str
-        The directory where the game is installed.
+    extracted_mods_dir : str, optional
+        The directory containing the extracted mods. If not provided, the path
+        is looked for in your Jenga configuration. Failing that, a path to a
+        zipped mods directory is required, either as an argument or in your
+        Jenga configuration.
+    zipped_mods_dir : str, optional
+        The directory containing the zipped mods. If not provided, the path
+        is looked for in your Jenga configuration. Failing that, all mods must
+        be present in the extracted mods directory (a path to which must br
+        provided).
+    weidu_exec_path : str, optional
+        The path to the WeiDU executable. If not provided, the path is looked
+        for in your Jenga configuration.
+    game_install_dir : str, optional
+        The directory where the game is installed. If not provided, the path
+        for an Infinitive Engine EE game is looked for in your Jenga
+        configuration. If none, or more than one, is found, user intent is
+        obscured and an error is raised.
     state_file_path : str, optional
         The path to the state file.
+    skip_installed_mods : bool, optional
+        Whether to skip the installation of already installed mods.
+        Default is False.
     """
+    # Handling optional arguments
+    extracted_mods_dir = extracted_mods_dir or CFG[
+        CfgKey.EXTRACTED_MOD_CACHE_DIR_PATH]
+    if not extracted_mods_dir:
+        warnings.warn(
+            "No extracted mods directory provided or found in the "
+            "configuration. The zipped mods directory must be provided."
+        )
+        raise ValueError(
+            "A path to an extracted mods directory must be provided."
+            "Zipped mod directory support is not implemented yet."
+        )
+    zipped_mods_dir = zipped_mods_dir or CFG[CfgKey.ZIPPED_MOD_CACHE_DIR_PATH]
+    if not zipped_mods_dir:
+        if not extracted_mods_dir:
+            raise ValueError(
+                "A path to neither a zipped mods directory or an extracted mod"
+                " directory was provided. At least one must be provided."
+                " Program exiting."
+            )
+    weidu_exec_path = weidu_exec_path or CFG[CfgKey.WEIDU_EXEC_PATH]
+    if not weidu_exec_path:
+        raise ValueError(
+            "A path to the WeiDU executable must be provided."
+        )
+    game_dirs = get_all_game_dirs()
+    if not game_install_dir:
+        if not len(game_dirs) == 1:
+            raise ValueError(
+                "A path to the game directory to mod must be provided "
+                "explicitly if there is not exactly one game directory path "
+                "in your Jenga configuration."
+            )
+        game_install_dir = game_dirs[0]
+        if not game_install_dir:
+            raise ValueError(
+                "A path to the game directory to mod must be provided."
+            )
+
     # Load the build file
     with open(build_file_path, 'r', encoding='utf-8') as f:
         build = json.load(f)
+    install_mod_state = None
+    if skip_installed_mods:
+        install_mod_state = get_mod_info_from_weidu_log(game_install_dir)
 
     build_name = build["config"]["build_name"]
     language = build["config"]["language"]
-    force_language_in_weidu_conf = build["config"]["force_language_in_weidu_conf"]
+    force_language_in_weidu_conf = build["config"][
+        "force_language_in_weidu_conf"]
     pause_every_x_mods = build["config"]["pause_every_x_mods"]
     mods = build["mods"]
 
@@ -207,7 +333,15 @@ def run_build(
         mod = mods[i]
         mod_name = mod["mod"]
         language_int = mod["language_int"]
+        version = mod["version"]
+        components = mod["components"]
         install_list = mod["install_list"]
+
+        if skip_installed_mods and mod_is_installed_identically(
+            mod_name, version, components, install_mod_state
+        ):
+            print(f"{mod_name} is already identically installed, skipping...")
+            continue
         log_file = f'setup-{mod_name.lower().replace(" ", "_")}.debug'
 
         # Update Weidu.conf with the language if necessary
@@ -228,21 +362,11 @@ def run_build(
         if not success:
             print(f"Installation of {mod_name} failed, stopping the process.")
             write_ongoing_state(build_name, i, state_file_path)
+            print(f"Build state saved to {state_file_path}")
             sys.exit(1)
 
         # Pause installation every x mods as required
         if (i + 1) % pause_every_x_mods == 0:
-            input(f"Paused after installing {pause_every_x_mods} mods. Press Enter to continue...")
-
-if __name__ == "__main__":
-    if len(sys.argv) < 5:
-        print("Usage: python install_weidu_mods.py <build_file_path> <mods_dir> <weidu_exec_path> <game_install_dir> [<state_file_path>]")
-        sys.exit(1)
-
-    build_file_path = sys.argv[1]
-    mods_dir = sys.argv[2]
-    weidu_exec_path = sys.argv[3]
-    game_install_dir = sys.argv[4]
-    state_file_path = sys.argv[5] if len(sys.argv) > 5 else None
-
-    main(build_file_path, mods_dir, weidu_exec_path, game_install_dir, state_file_path)
+            input(
+                f"Paused after installing {pause_every_x_mods} mods. "
+                "Press Enter to continue...")

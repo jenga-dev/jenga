@@ -6,6 +6,8 @@ from typing_extensions import Annotated
 from jenga import (
     run_build,
     weidu_log_to_json_build_file,
+    weidu_log_to_yaml_build_file,
+    print_config,
 )
 
 app = typer.Typer()
@@ -60,6 +62,33 @@ def convert_weidu_log_to_json_build_file(
         created.
     """
     weidu_log_to_json_build_file(weidu_log_path, build_file_path)
+
+
+@app.command()
+def convert_weidu_log_to_yaml_build_file(
+    weidu_log_path: str,
+    build_file_path: Annotated[
+        str, typer.Option(help="The path to the yaml build file to create.")
+    ] = None,
+) -> None:
+    """Convert a WeiDU log file to a Jenga YAML build file.
+
+    Parameters
+    ----------
+    weidu_log_path : str
+        The path to the WeiDU log file.
+    build_file_path : str, optional
+        The path to the output YAML build file. If not provided, a file name
+        of the pattern <date:time>_jenga_build_from_weidu_log.yaml will be
+        created.
+    """
+    weidu_log_to_yaml_build_file(weidu_log_path, build_file_path)
+
+
+@app.command()
+def print_configuration() -> None:
+    """Print the configuration."""
+    print_config()
 
 
 def cli():
