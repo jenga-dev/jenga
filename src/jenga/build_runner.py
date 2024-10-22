@@ -158,7 +158,7 @@ def write_ongoing_state(
         The name of the state file.
     """
     state = {'build_name': build_name, 'last_mod_index': index}
-    with open(state_file_name, 'w', encoding='utf-8') as f:
+    with open(state_file_path, 'w', encoding='utf-8') as f:
         json.dump(state, f, indent=4)
 
 

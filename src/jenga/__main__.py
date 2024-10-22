@@ -3,7 +3,10 @@
 import typer
 from typing_extensions import Annotated
 
-from jenga import weidu_log_to_build_file
+from jenga import (
+    run_build,
+    weidu_log_to_build_file,
+)
 
 app = typer.Typer()
 
@@ -51,12 +54,10 @@ def convert_weidu_log_to_build_file(
     ----------
     weidu_log_path : str
         The path to the WeiDU log file.
-    build_file_path : str
+    build_file_path : str, optional
         The path to the build file to create.
 
     """
-    if build_file_path is None:
-        build_file_path = weidu_log_path.replace(".log", ".json")
     print(
         "Converting WeiDU log file in:\n"
         f"{weidu_log_path}\n"
