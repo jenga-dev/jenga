@@ -1,24 +1,25 @@
 """The Jenga build runner."""
 
 # Standard library imports
-import os
-import sys
 import json
-import warnings
+import os
 import subprocess
-from typing import Optional
+import sys
+import warnings
 from datetime import datetime
+from typing import Optional
 
 # Third-party imports
-from fuzzywuzzy import process, fuzz
+from fuzzywuzzy import fuzz, process
 
-# Local imports
-from .util import weidu_log_to_build_dict
 from .config import (
     CFG,
     CfgKey,
     get_all_game_dirs,
 )
+
+# Local imports
+from .util import weidu_log_to_build_dict
 
 
 def update_weidu_conf(game_dir: str, language: str) -> None:
@@ -30,32 +31,33 @@ def update_weidu_conf(game_dir: str, language: str) -> None:
         The directory where the game is installed.
     language : str
         The language to set in the configuration file. E.g. en_US, etc.
+
     """
-    weidu_conf_path = os.path.join(game_dir, 'weidu.conf')
-    lang_dir_line = f'lang_dir = {language}\n'
+    weidu_conf_path = os.path.join(game_dir, "weidu.conf")
+    lang_dir_line = f"lang_dir = {language}\n"
     # Read the original content of the configuration file
     # If the weidu.conf does not exist, initialize with the new language line
     if not os.path.exists(weidu_conf_path):
-        with open(weidu_conf_path, 'w', encoding='utf-8') as f:
+        with open(weidu_conf_path, "w", encoding="utf-8") as f:
             f.write(lang_dir_line)
         return
-    with open(weidu_conf_path, 'r', encoding='utf-8') as f:
+    with open(weidu_conf_path, "r", encoding="utf-8") as f:
         lines = f.readlines()
     # Check for existing lang_dir line
     for i, line in enumerate(lines):
-        if line.startswith('lang_dir ='):
+        if line.startswith("lang_dir ="):
             lines[i] = lang_dir_line
             break
     else:
         # Append the line if not present
         lines.append(lang_dir_line)
     # Write back the content with the updated lang_dir line
-    with open(weidu_conf_path, 'w', encoding='utf-8') as f:
+    with open(weidu_conf_path, "w", encoding="utf-8") as f:
         f.writelines(lines)
 
 
 def fuzzy_find(directory: str, name: str, file_type: str = ".tp2") -> str:
-    """ Fuzzy find the file matching the given name in directory.
+    """Fuzzy find the file matching the given name in directory.
 
     Parameters
     ----------
@@ -70,14 +72,14 @@ def fuzzy_find(directory: str, name: str, file_type: str = ".tp2") -> str:
     -------
     str
         The path to the file found in the directory.
+
     """
     entries = [
         entry
         for entry in os.listdir(directory)
         if entry.lower().endswith(file_type)
     ]
-    result = process.extractOne(
-        name.lower(), entries, scorer=fuzz.ratio)
+    result = process.extractOne(name.lower(), entries, scorer=fuzz.ratio)
     if result is None:
         raise FileNotFoundError(
             f"Unable to locate {name}{file_type} in {directory}."
@@ -103,14 +105,19 @@ def get_mod_info_from_weidu_log(install_dir: str) -> dict:
     -------
     dict
         A dictionary containing the mod information.
+
     """
-    weidu_log_path = os.path.join(install_dir, 'weidu.log')
+    weidu_log_path = os.path.join(install_dir, "weidu.log")
     return weidu_log_to_build_dict(weidu_log_path)
 
 
 def execute_mod_installation(
-    weidu_exec_path: str, mod_tp2_path: str, install_dir: str,
-    language_int: int, install_list: str, log_file: str,
+    weidu_exec_path: str,
+    mod_tp2_path: str,
+    install_dir: str,
+    language_int: int,
+    install_list: str,
+    log_file: str,
 ) -> bool:
     """Execute installation command and return success.
 
@@ -128,30 +135,36 @@ def execute_mod_installation(
         The list of components to install.
     log_file : str
         The path to the log file to write logs to.
+
     """
     command = [
         weidu_exec_path,
         mod_tp2_path,
         "--no-exit-pause",
-        "--game", install_dir,
-        "--log", log_file,
-        "--language", str(language_int),
+        "--game",
+        install_dir,
+        "--log",
+        log_file,
+        "--language",
+        str(language_int),
         "--skip-at-view",
-        "--force-install-list", install_list
+        "--force-install-list",
+        install_list,
     ]
     proc = subprocess.run(
-        command, stdout=subprocess.PIPE,
+        command,
+        stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         check=False,
     )
     # Decode the stdout and stderr
-    stdout_text = proc.stdout.decode('utf-8')
-    stderr_text = proc.stderr.decode('utf-8')
+    stdout_text = proc.stdout.decode("utf-8")
+    stderr_text = proc.stderr.decode("utf-8")
     # Print stdout and stderr to screen
-    print(stdout_text, end='')
-    print(stderr_text, end='', file=sys.stderr)
+    print(stdout_text, end="")
+    print(stderr_text, end="", file=sys.stderr)
     # Append stdout and stderr to the log file
-    with open(log_file, 'ab') as lf:
+    with open(log_file, "ab") as lf:
         lf.write(proc.stdout)
         lf.write(proc.stderr)
     return proc.returncode == 0
@@ -169,16 +182,19 @@ def get_start_index_from_build_state_file(state_file_path: str) -> int:
     -------
     int
         The start index of the resumed build order.
+
     """
-    with open(state_file_path, 'r', encoding='utf-8') as f:
+    with open(state_file_path, "r", encoding="utf-8") as f:
         build_state = json.load(f)
-    return build_state['last_mod_index'] + 1
+    return build_state["last_mod_index"] + 1
 
 
 def write_ongoing_state(
-    build_name: str, index: int, state_file_path: str,
+    build_name: str,
+    index: int,
+    state_file_path: str,
 ) -> None:
-    """ Write ongoing builg state to file.
+    """Write ongoing builg state to file.
 
     Parameters
     ----------
@@ -188,9 +204,10 @@ def write_ongoing_state(
         The index of the last installed mod.
     state_file_path : str
         The name of the state file.
+
     """
-    state = {'build_name': build_name, 'last_mod_index': index}
-    with open(state_file_path, 'w', encoding='utf-8') as f:
+    state = {"build_name": build_name, "last_mod_index": index}
+    with open(state_file_path, "w", encoding="utf-8") as f:
         json.dump(state, f, indent=4)
 
 
@@ -218,13 +235,14 @@ def mod_is_installed_identically(
     -------
     bool
         Whether the mod is installed identically.
+
     """
     if not install_info:
         return False
     return (
-        install_info['mod_name'] == mod_name
-        and install_info['mod_version'] == mod_version
-        and set(install_info['components']) == set(installed_components)
+        install_info["mod_name"] == mod_name
+        and install_info["mod_version"] == mod_version
+        and set(install_info["components"]) == set(installed_components)
     )
 
 
@@ -266,10 +284,12 @@ def run_build(
     skip_installed_mods : bool, optional
         Whether to skip the installation of already installed mods.
         Default is False.
+
     """
     # Handling optional arguments
-    extracted_mods_dir = extracted_mods_dir or CFG[
-        CfgKey.EXTRACTED_MOD_CACHE_DIR_PATH]
+    extracted_mods_dir = (
+        extracted_mods_dir or CFG[CfgKey.EXTRACTED_MOD_CACHE_DIR_PATH]
+    )
     if not extracted_mods_dir:
         warnings.warn(
             "No extracted mods directory provided or found in the "
@@ -289,9 +309,7 @@ def run_build(
             )
     weidu_exec_path = weidu_exec_path or CFG[CfgKey.WEIDU_EXEC_PATH]
     if not weidu_exec_path:
-        raise ValueError(
-            "A path to the WeiDU executable must be provided."
-        )
+        raise ValueError("A path to the WeiDU executable must be provided.")
     game_dirs = get_all_game_dirs()
     if not game_install_dir:
         if not len(game_dirs) == 1:
@@ -307,7 +325,7 @@ def run_build(
             )
 
     # Load the build file
-    with open(build_file_path, 'r', encoding='utf-8') as f:
+    with open(build_file_path, "r", encoding="utf-8") as f:
         build = json.load(f)
     install_mod_state = None
     if skip_installed_mods:
@@ -316,17 +334,19 @@ def run_build(
     build_name = build["config"]["build_name"]
     language = build["config"]["language"]
     force_language_in_weidu_conf = build["config"][
-        "force_language_in_weidu_conf"]
+        "force_language_in_weidu_conf"
+    ]
     pause_every_x_mods = build["config"]["pause_every_x_mods"]
     mods = build["mods"]
 
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    state_file_name = f'jenga_{build_name}_{timestamp}.json'
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    state_file_name = f"jenga_{build_name}_{timestamp}.json"
     state_file_path = os.path.join(game_install_dir, state_file_name)
 
     start_index = (
         get_start_index_from_build_state_file(state_file_path)
-        if state_file_path else 0
+        if state_file_path
+        else 0
     )
 
     for i in range(start_index, len(mods)):
@@ -355,8 +375,12 @@ def run_build(
         print(f"Installing {mod_name}...")
 
         success = execute_mod_installation(
-            weidu_exec_path, mod_tp2_path, game_install_dir,
-            language_int, install_list, log_file
+            weidu_exec_path,
+            mod_tp2_path,
+            game_install_dir,
+            language_int,
+            install_list,
+            log_file,
         )
 
         if not success:
@@ -369,4 +393,5 @@ def run_build(
         if (i + 1) % pause_every_x_mods == 0:
             input(
                 f"Paused after installing {pause_every_x_mods} mods. "
-                "Press Enter to continue...")
+                "Press Enter to continue..."
+            )

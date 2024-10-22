@@ -1,11 +1,12 @@
 """Utility functions for jenga."""
 
-import re
 import json
-import yaml
 import pathlib
+import re
 from datetime import datetime
 from typing import Dict, Optional
+
+import yaml
 
 
 def weidu_log_to_build_dict(
@@ -22,6 +23,7 @@ def weidu_log_to_build_dict(
     -------
     dict
         A dictionary containing the build information.
+
     """
     # Dictionary to store mods information
     mods_info: Dict = {}
@@ -90,8 +92,9 @@ def _build_fpath_from_weidu_fpath(
     -------
     str
         The path to the build file.
+
     """
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     build_file_name: str = f"{timestamp}_jenga_build_from_weidu_log.{ext}"
     weidu_path_obj = pathlib.Path(weidu_fpath)
     dir_path = weidu_path_obj.parent
@@ -114,6 +117,7 @@ def weidu_log_to_json_build_file(
         The path to the output JSON build file. If not provided, a file name
         of the pattern <date:time>_jenga_build_from_weidu_log.json will be
         created.
+
     """
     if build_file_path is None:
         build_file_path = _build_fpath_from_weidu_fpath(
@@ -133,8 +137,7 @@ def weidu_log_to_json_build_file(
 
 
 def weidu_log_to_yaml_build_file(
-    weidu_log_path: str,
-    build_file_path: Optional[str] = None
+    weidu_log_path: str, build_file_path: Optional[str] = None
 ) -> None:
     """Convert a WeiDU log file to a YAML build file.
 
@@ -146,6 +149,7 @@ def weidu_log_to_yaml_build_file(
         The path to the output YAML build file. If not provided, a file name
         of the pattern <date:time>_jenga_build_from_weidu_log.yaml will be
         created.
+
     """
     if build_file_path is None:
         build_file_path = _build_fpath_from_weidu_fpath(

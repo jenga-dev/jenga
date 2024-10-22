@@ -4,10 +4,10 @@ import typer
 from typing_extensions import Annotated
 
 from jenga import (
+    print_config,
     run_build,
     weidu_log_to_json_build_file,
     weidu_log_to_yaml_build_file,
-    print_config,
 )
 
 app = typer.Typer()
@@ -60,6 +60,7 @@ def convert_weidu_log_to_json_build_file(
         The path to the output JSON build file. If not provided, a file name
         of the pattern <date:time>_jenga_build_from_weidu_log.json will be
         created.
+
     """
     weidu_log_to_json_build_file(weidu_log_path, build_file_path)
 
@@ -81,6 +82,7 @@ def convert_weidu_log_to_yaml_build_file(
         The path to the output YAML build file. If not provided, a file name
         of the pattern <date:time>_jenga_build_from_weidu_log.yaml will be
         created.
+
     """
     weidu_log_to_yaml_build_file(weidu_log_path, build_file_path)
 
