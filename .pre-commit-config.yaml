@@ -28,11 +28,7 @@ repos:
       - id: typos
         # empty to do not write fixes
         args: []
-        exclude: |
-        (?x)^(
-          .*\.txt
-          |.*\.xml
-        )$
+        exclude: "weidu_help.txt|tests/weidu_help.txt"
 
   - repo: https://github.com/PyCQA/docformatter
     rev: 06907d0267368b49b9180eed423fae5697c1e909 # todo: fix for docformatter after last 1.7.5
