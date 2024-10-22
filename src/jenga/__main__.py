@@ -25,7 +25,9 @@ def run_full_build(
         The path to the build file.
 
     """
-    print(build_file_path)
+    run_build(
+        build_file_path=build_file_path,
+    )
 
 
 @app.command()

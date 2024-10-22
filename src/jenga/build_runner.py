@@ -151,7 +151,7 @@ def execute_mod_installation(
         "--force-install-list",
         install_list,
     ]
-    proc = subprocess.run(
+    proc = subprocess.run(  # nosec - subprocess.run is safe
         command,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -293,20 +293,20 @@ def run_build(
     if not extracted_mods_dir:
         warnings.warn(
             "No extracted mods directory provided or found in the "
-            "configuration. The zipped mods directory must be provided."
+            "configuration. The zipped mods directory must be provided.",
+            stacklevel=2,
         )
         raise ValueError(
             "A path to an extracted mods directory must be provided."
             "Zipped mod directory support is not implemented yet."
         )
     zipped_mods_dir = zipped_mods_dir or CFG[CfgKey.ZIPPED_MOD_CACHE_DIR_PATH]
-    if not zipped_mods_dir:
-        if not extracted_mods_dir:
-            raise ValueError(
-                "A path to neither a zipped mods directory or an extracted mod"
-                " directory was provided. At least one must be provided."
-                " Program exiting."
-            )
+    if not zipped_mods_dir and not extracted_mods_dir:
+        raise ValueError(
+            "A path to neither a zipped mods directory or an extracted mod"
+            " directory was provided. At least one must be provided."
+            " Program exiting."
+        )
     weidu_exec_path = weidu_exec_path or CFG[CfgKey.WEIDU_EXEC_PATH]
     if not weidu_exec_path:
         raise ValueError("A path to the WeiDU executable must be provided.")
@@ -369,7 +369,7 @@ def run_build(
             update_weidu_conf(game_install_dir, language)
 
         # Find the mod directory and .tp2 file inside
-        mod_dir = fuzzy_find(mods_dir, mod_name, "")
+        mod_dir = fuzzy_find(extracted_mods_dir, mod_name, "")
         mod_tp2_path = fuzzy_find(mod_dir, mod_name, ".tp2")
 
         print(f"Installing {mod_name}...")
