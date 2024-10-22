@@ -177,12 +177,13 @@ def weidu_log_to_yaml_build_file(
 def mirror_backslashes_in_file(
     path: str,
 ) -> None:
-    """Replace every \ in the input text file with an / character.
+    r"""Replace every \ in the input text file with an / character.
 
     Parameters
     ----------
     path : str
         The path to the input text file.
+
     """
     with open(path, "rt", encoding="utf-8") as file:
         text = file.read()

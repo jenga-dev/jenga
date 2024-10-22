@@ -1,12 +1,12 @@
 """The Jenga build runner."""
 
 # Standard library imports
-import os
-import sys
 import json
-import shutil
+import os
 import platform
+import shutil
 import subprocess
+import sys
 import warnings
 from datetime import datetime
 from typing import Optional
@@ -24,8 +24,8 @@ from .config import (
 # Local imports
 from .util import (
     ConfigurationError,
-    weidu_log_to_build_dict,
     mirror_backslashes_in_file,
+    weidu_log_to_build_dict,
 )
 
 
@@ -178,16 +178,16 @@ def execute_mod_installation(
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         shell=True,
-        universal_newlines=True
+        universal_newlines=True,
     )
 
     with open(log_file, "ab") as lf:
         for stdout_line in proc.stdout:
-            print(stdout_line, end='')
-            lf.write(stdout_line.encode('utf-8'))
+            print(stdout_line, end="")
+            lf.write(stdout_line.encode("utf-8"))
         for stderr_line in proc.stderr:
-            print(stderr_line, end='', file=sys.stderr)
-            lf.write(stderr_line.encode('utf-8'))
+            print(stderr_line, end="", file=sys.stderr)
+            lf.write(stderr_line.encode("utf-8"))
 
     proc.wait()
     return proc.returncode == 0
@@ -335,6 +335,7 @@ def _resolve_game_dir(
     -------
     str
         The resolved game directory path. None if resolution fails.
+
     """
     if game_install_dir is not None:
         return game_install_dir
@@ -398,8 +399,8 @@ def run_build(
 
     """
     # Handling optional arguments
-    extracted_mods_dir = (
-        extracted_mods_dir or CFG.get(CfgKey.EXTRACTED_MOD_CACHE_DIR_PATH)
+    extracted_mods_dir = extracted_mods_dir or CFG.get(
+        CfgKey.EXTRACTED_MOD_CACHE_DIR_PATH
     )
     if not extracted_mods_dir:
         warnings.warn(
@@ -412,7 +413,8 @@ def run_build(
             "Zipped mod directory support is not implemented yet."
         )
     zipped_mods_dir = zipped_mods_dir or CFG.get(
-        CfgKey.ZIPPED_MOD_CACHE_DIR_PATH)
+        CfgKey.ZIPPED_MOD_CACHE_DIR_PATH
+    )
     if not zipped_mods_dir and not extracted_mods_dir:
         raise ValueError(
             "A path to neither a zipped mods directory or an extracted mod"
@@ -431,7 +433,8 @@ def run_build(
         config = build["config"]
     except KeyError as e:
         raise ConfigurationError(
-            "The build file must contain a 'config' key.") from e
+            "The build file must contain a 'config' key."
+        ) from e
     game = config.get("game")
     game_install_dir = _resolve_game_dir(game_install_dir, game)
     install_mod_state = None
@@ -451,7 +454,8 @@ def run_build(
         mods = build["mods"]
     except KeyError as e:
         raise ConfigurationError(
-            "The build file must contain a 'mods' key.") from e
+            "The build file must contain a 'mods' key."
+        ) from e
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     new_state_file_name = f"jenga_state_{build_name}_{timestamp}.json"

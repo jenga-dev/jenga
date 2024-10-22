@@ -111,6 +111,7 @@ def get_game_dir(game_alias: Optional[str] = None) -> str | None:
     -------
     str | None
         The path to the game directory.
+
     """
     if game_alias is None:
         return None
