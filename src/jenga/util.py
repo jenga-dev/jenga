@@ -9,6 +9,12 @@ from typing import Dict, Optional
 import yaml
 
 
+class ConfigurationError(Exception):
+    """Configuration error."""
+
+    pass
+
+
 def weidu_log_to_build_dict(
     weidu_log_path: str,
 ) -> dict:
@@ -166,3 +172,20 @@ def weidu_log_to_yaml_build_file(
     # Write the output to a YAML file
     with open(build_file_path, "wt+", encoding="utf-8") as yaml_file:
         yaml.dump(result, yaml_file, default_flow_style=False, sort_keys=False)
+
+
+def mirror_backslashes_in_file(
+    path: str,
+) -> None:
+    """Replace every \ in the input text file with an / character.
+
+    Parameters
+    ----------
+    path : str
+        The path to the input text file.
+    """
+    with open(path, "rt", encoding="utf-8") as file:
+        text = file.read()
+    text = text.replace("\\", "/")
+    with open(path, "wt", encoding="utf-8") as file:
+        file.write(text)

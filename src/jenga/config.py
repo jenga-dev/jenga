@@ -1,5 +1,7 @@
 """Configuration control for jenga."""
 
+from typing import Optional
+
 import birch
 
 
@@ -65,3 +67,51 @@ def get_all_game_dirs() -> list[str | None]:
 def print_config() -> None:
     """Print the configuration."""
     print(CFG.as_str())
+
+
+_GAME_ALIAS_TO_DIR_PATH = {
+    "bgee": BGEE_DIR_PATH,
+    "bg:ee": BGEE_DIR_PATH,
+    "baldur's gate": BGEE_DIR_PATH,
+    "balder's gate: enhanced edition": BGEE_DIR_PATH,
+    "bgiiee": BGIIEE_DIR_PATH,
+    "bgii:ee": BGIIEE_DIR_PATH,
+    "baldur's gate ii": BGIIEE_DIR_PATH,
+    "balder's gate ii: enhanced edition": BGIIEE_DIR_PATH,
+    "baldur's gate 2": BGIIEE_DIR_PATH,
+    "baldur's gate 2: enhanced edition": BGIIEE_DIR_PATH,
+    "bg2ee": BGIIEE_DIR_PATH,
+    "bg2:ee": BGIIEE_DIR_PATH,
+    "iwdee": IWDEE_DIR_PATH,
+    "iwd:ee": IWDEE_DIR_PATH,
+    "icewind dale": IWDEE_DIR_PATH,
+    "icewind dale: enhanced edition": IWDEE_DIR_PATH,
+    "iwd2ee": IWD2EE_DIR_PATH,
+    "iwd2:ee": IWD2EE_DIR_PATH,
+    "icewind dale ii": IWD2EE_DIR_PATH,
+    "icewind dale 2: enhanced edition": IWD2EE_DIR_PATH,
+    "icewind dale 2": IWD2EE_DIR_PATH,
+    "icewind dale 2: enhanced edition": IWD2EE_DIR_PATH,
+    "pstee": PSTEE_DIR_PATH,
+    "pst:ee": PSTEE_DIR_PATH,
+    "planescape torment": PSTEE_DIR_PATH,
+    "planescape: torment: enhanced edition": PSTEE_DIR_PATH,
+}
+
+
+def get_game_dir(game_alias: Optional[str] = None) -> str | None:
+    """Get the game directory path for the given game alias.
+
+    Parameters
+    ----------
+    game_alias : str
+        The game alias.
+
+    Returns
+    -------
+    str | None
+        The path to the game directory.
+    """
+    if game_alias is None:
+        return None
+    return _GAME_ALIAS_TO_DIR_PATH.get(game_alias.lower())
