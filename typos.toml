@@ -1,7 +1,0 @@
-[files]
-extend-exclude = [
-  "tests/weidu_help.txt",
-  "*weidu_help.txt",
-  "*weidu_help*",
-  "*/weidu_help.txt",
-]
