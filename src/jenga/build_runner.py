@@ -145,6 +145,7 @@ def execute_mod_installation(
     -------
     bool
         Whether the installation was successful.
+
     """
     command = [
         weidu_exec_path,
@@ -239,6 +240,7 @@ def find_latest_build_state_file(
     -------
     Optional[str]
         The path to the latest build state file.
+
     """
     # note: state file pattern is jenga_{build_name}_{timestamp}.json
     state_files = [
@@ -342,6 +344,7 @@ def run_build(
     skip_installed_mods : bool, optional
         Whether to skip the installation of already installed mods.
         Default is False.
+
     """
     # Handling optional arguments
     extracted_mods_dir = (
@@ -377,9 +380,7 @@ def run_build(
 
     build_name = build["config"]["build_name"]
     lang = build["config"]["lang"]
-    force_lang_in_weidu_conf = build["config"][
-        "force_lang_in_weidu_conf"
-    ]
+    force_lang_in_weidu_conf = build["config"]["force_lang_in_weidu_conf"]
     pause_every_x_mods = build["config"]["pause_every_x_mods"]
     mods = build["mods"]
 
@@ -436,11 +437,15 @@ def run_build(
 
         # Pause installation every x mods as required
         if (i + 1) % pause_every_x_mods == 0:
-            user_input = input(
-                f"Paused after installing {pause_every_x_mods} mods. "
-                "Press Enter or type 'yes'/'y' to continue, or any other key to halt: "
-            ).strip().lower()
-            if user_input not in ('', 'yes', 'y'):
+            user_input = (
+                input(
+                    f"Paused after installing {pause_every_x_mods} mods. "
+                    "Press Enter or type 'yes'/'y' to continue, or any other key to halt: "
+                )
+                .strip()
+                .lower()
+            )
+            if user_input not in ("", "yes", "y"):
                 print("Halting the process based on user input.")
                 write_ongoing_state(build_name, i, state_file_path)
                 print(f"Build state saved to {state_file_path}")
@@ -485,6 +490,7 @@ def resume_partial_build(
     skip_installed_mods : bool, optional
         Whether to skip the installation of already installed mods.
         Default is False.
+
     """
     game_install_dir = _resolve_game_dir(game_install_dir)
     if not state_file_path:

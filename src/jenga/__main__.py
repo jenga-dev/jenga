@@ -23,6 +23,7 @@ def run_full_build(
     ----------
     build_file_path : str
         The path to the build file.
+
     """
     run_build(
         build_file_path=build_file_path,
@@ -46,6 +47,7 @@ def resume_partial_build(
         The path to the state file to resume from. If not provided, the game
         directory will be searched for the most recent state file for this
         build.
+
     """
     resume_partial_build(
         build_file_path=build_file_path,
@@ -70,6 +72,7 @@ def convert_weidu_log_to_json_build_file(
         The path to the output JSON build file. If not provided, a file name
         of the pattern <date:time>_jenga_build_from_weidu_log.json will be
         created.
+
     """
     weidu_log_to_json_build_file(weidu_log_path, build_file_path)
 
@@ -91,6 +94,7 @@ def convert_weidu_log_to_yaml_build_file(
         The path to the output YAML build file. If not provided, a file name
         of the pattern <date:time>_jenga_build_from_weidu_log.yaml will be
         created.
+
     """
     weidu_log_to_yaml_build_file(weidu_log_path, build_file_path)
 
