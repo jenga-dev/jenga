@@ -3,6 +3,7 @@
 from ._version import *  # noqa: F403
 from .build_runner import (
     run_build,
+    resume_partial_build,
 )
 from .config import (
     print_config,

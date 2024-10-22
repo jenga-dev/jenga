@@ -118,6 +118,7 @@ def execute_mod_installation(
     language_int: int,
     install_list: str,
     log_file: str,
+    lang: str,
 ) -> bool:
     """Execute installation command and return success.
 
@@ -130,12 +131,20 @@ def execute_mod_installation(
     install_dir : str
         The directory where the game is installed.
     language_int : int
-        The language integer to set in the installation.
+        The language integer to set for the installation process, determining
+        the language used to describe components and to interact with the
+        user.
     install_list : str
         The list of components to install.
     log_file : str
         The path to the log file to write logs to.
+    lang : str
+        The language directory the mod should operate on. E.g. en_US, etc.
 
+    Returns
+    -------
+    bool
+        Whether the installation was successful.
     """
     command = [
         weidu_exec_path,
@@ -150,6 +159,8 @@ def execute_mod_installation(
         "--skip-at-view",
         "--force-install-list",
         install_list,
+        "--use-lang",
+        lang,
     ]
     proc = subprocess.run(  # nosec - subprocess.run is safe
         command,
@@ -211,6 +222,36 @@ def write_ongoing_state(
         json.dump(state, f, indent=4)
 
 
+def find_latest_build_state_file(
+    build_name: str,
+    game_install_dir: str,
+) -> Optional[str]:
+    """Find the latest build state file.
+
+    Parameters
+    ----------
+    build_name : str
+        The name of the build.
+    game_install_dir : str
+        The directory where the game is installed.
+
+    Returns
+    -------
+    Optional[str]
+        The path to the latest build state file.
+    """
+    # note: state file pattern is jenga_{build_name}_{timestamp}.json
+    state_files = [
+        file
+        for file in os.listdir(game_install_dir)
+        if file.startswith(f"jenga_{build_name}")
+    ]
+    if not state_files:
+        return None
+    state_files.sort()
+    return os.path.join(game_install_dir, state_files[-1])
+
+
 def mod_is_installed_identically(
     mod_name: str,
     mod_version: str,
@@ -244,6 +285,23 @@ def mod_is_installed_identically(
         and install_info["mod_version"] == mod_version
         and set(install_info["components"]) == set(installed_components)
     )
+
+
+def _resolve_game_dir(game_install_dir: Optional[str]) -> str:
+    game_dirs = get_all_game_dirs()
+    if not game_install_dir:
+        if not len(game_dirs) == 1:
+            raise ValueError(
+                "A path to the game directory to mod must be provided "
+                "explicitly if there is not exactly one game directory path "
+                "in your Jenga configuration."
+            )
+        game_install_dir = game_dirs[0]
+        if not game_install_dir:
+            raise ValueError(
+                "A path to the game directory to mod must be provided."
+            )
+    return game_install_dir
 
 
 def run_build(
@@ -284,7 +342,6 @@ def run_build(
     skip_installed_mods : bool, optional
         Whether to skip the installation of already installed mods.
         Default is False.
-
     """
     # Handling optional arguments
     extracted_mods_dir = (
@@ -310,20 +367,7 @@ def run_build(
     weidu_exec_path = weidu_exec_path or CFG[CfgKey.WEIDU_EXEC_PATH]
     if not weidu_exec_path:
         raise ValueError("A path to the WeiDU executable must be provided.")
-    game_dirs = get_all_game_dirs()
-    if not game_install_dir:
-        if not len(game_dirs) == 1:
-            raise ValueError(
-                "A path to the game directory to mod must be provided "
-                "explicitly if there is not exactly one game directory path "
-                "in your Jenga configuration."
-            )
-        game_install_dir = game_dirs[0]
-        if not game_install_dir:
-            raise ValueError(
-                "A path to the game directory to mod must be provided."
-            )
-
+    game_install_dir = _resolve_game_dir(game_install_dir)
     # Load the build file
     with open(build_file_path, "r", encoding="utf-8") as f:
         build = json.load(f)
@@ -332,9 +376,9 @@ def run_build(
         install_mod_state = get_mod_info_from_weidu_log(game_install_dir)
 
     build_name = build["config"]["build_name"]
-    language = build["config"]["language"]
-    force_language_in_weidu_conf = build["config"][
-        "force_language_in_weidu_conf"
+    lang = build["config"]["lang"]
+    force_lang_in_weidu_conf = build["config"][
+        "force_lang_in_weidu_conf"
     ]
     pause_every_x_mods = build["config"]["pause_every_x_mods"]
     mods = build["mods"]
@@ -365,8 +409,8 @@ def run_build(
         log_file = f'setup-{mod_name.lower().replace(" ", "_")}.debug'
 
         # Update Weidu.conf with the language if necessary
-        if force_language_in_weidu_conf:
-            update_weidu_conf(game_install_dir, language)
+        if force_lang_in_weidu_conf:
+            update_weidu_conf(game_install_dir, lang)
 
         # Find the mod directory and .tp2 file inside
         mod_dir = fuzzy_find(extracted_mods_dir, mod_name, "")
@@ -381,6 +425,7 @@ def run_build(
             language_int,
             install_list,
             log_file,
+            lang,
         )
 
         if not success:
@@ -391,7 +436,69 @@ def run_build(
 
         # Pause installation every x mods as required
         if (i + 1) % pause_every_x_mods == 0:
-            input(
+            user_input = input(
                 f"Paused after installing {pause_every_x_mods} mods. "
-                "Press Enter to continue..."
-            )
+                "Press Enter or type 'yes'/'y' to continue, or any other key to halt: "
+            ).strip().lower()
+            if user_input not in ('', 'yes', 'y'):
+                print("Halting the process based on user input.")
+                write_ongoing_state(build_name, i, state_file_path)
+                print(f"Build state saved to {state_file_path}")
+                sys.exit(0)
+
+
+def resume_partial_build(
+    build_file_path: str,
+    extracted_mods_dir: Optional[str] = None,
+    zipped_mods_dir: Optional[str] = None,
+    weidu_exec_path: Optional[str] = None,
+    game_install_dir: Optional[str] = None,
+    state_file_path: Optional[str] = None,
+    skip_installed_mods: Optional[bool] = False,
+) -> None:
+    """Run the build process.
+
+    Parameters
+    ----------
+    build_file_path : str
+        The path to the build file.
+    extracted_mods_dir : str, optional
+        The directory containing the extracted mods. If not provided, the path
+        is looked for in your Jenga configuration. Failing that, a path to a
+        zipped mods directory is required, either as an argument or in your
+        Jenga configuration.
+    zipped_mods_dir : str, optional
+        The directory containing the zipped mods. If not provided, the path
+        is looked for in your Jenga configuration. Failing that, all mods must
+        be present in the extracted mods directory (a path to which must br
+        provided).
+    weidu_exec_path : str, optional
+        The path to the WeiDU executable. If not provided, the path is looked
+        for in your Jenga configuration.
+    game_install_dir : str, optional
+        The directory where the game is installed. If not provided, the path
+        for an Infinitive Engine EE game is looked for in your Jenga
+        configuration. If none, or more than one, is found, user intent is
+        obscured and an error is raised.
+    state_file_path : str, optional
+        The path to the state file.
+    skip_installed_mods : bool, optional
+        Whether to skip the installation of already installed mods.
+        Default is False.
+    """
+    game_install_dir = _resolve_game_dir(game_install_dir)
+    if not state_file_path:
+        state_file_path = find_latest_build_state_file(
+            build_file_path, game_install_dir
+        )
+        if not state_file_path:
+            raise ValueError("A path to the state file must be provided.")
+    run_build(
+        build_file_path,
+        extracted_mods_dir,
+        zipped_mods_dir,
+        weidu_exec_path,
+        game_install_dir,
+        state_file_path,
+        skip_installed_mods,
+    )
