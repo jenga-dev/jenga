@@ -5,11 +5,11 @@ from .build_runner import (
     run_build,
 )
 from .util import (
-    weidu_log_to_build_file,
+    weidu_log_to_json_build_file,
 )
 
 __all__ = [  # noqa: F405
     "jenga",
     "run_build",
-    "weidu_log_to_build_file",
+    "weidu_log_to_json_build_file",
 ]

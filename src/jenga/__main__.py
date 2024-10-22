@@ -5,7 +5,7 @@ from typing_extensions import Annotated
 
 from jenga import (
     run_build,
-    weidu_log_to_build_file,
+    weidu_log_to_json_build_file,
 )
 
 app = typer.Typer()
@@ -42,29 +42,24 @@ def resume_partial_build(
 
 
 @app.command()
-def convert_weidu_log_to_build_file(
+def convert_weidu_log_to_json_build_file(
     weidu_log_path: str,
     build_file_path: Annotated[
         str, typer.Option(help="The path to the json build file to create.")
     ] = None,
 ) -> None:
-    """Convert a WeiDU log file to a build file.
+    """Convert a WeiDU log file to a Jenga JSON build file.
 
     Parameters
     ----------
     weidu_log_path : str
         The path to the WeiDU log file.
     build_file_path : str, optional
-        The path to the build file to create.
-
+        The path to the output JSON build file. If not provided, a file name
+        of the pattern <date:time>_jenga_build_from_weidu_log.json will be
+        created.
     """
-    print(
-        "Converting WeiDU log file in:\n"
-        f"{weidu_log_path}\n"
-        "to a Jenga .json build file in:\n"
-        f"{build_file_path}\n..."
-    )
-    weidu_log_to_build_file(weidu_log_path, build_file_path)
+    weidu_log_to_json_build_file(weidu_log_path, build_file_path)
 
 
 def cli():
