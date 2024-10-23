@@ -9,7 +9,7 @@ import subprocess
 import sys
 import warnings
 from datetime import datetime
-from typing import Optional, List, Dict, Tuple
+from typing import Dict, List, Optional, Tuple
 
 # Third-party imports
 from fuzzywuzzy import fuzz, process
@@ -28,13 +28,13 @@ from .config import (
 from .parsing import (
     weidu_log_to_build_dict,
 )
+from .printing import (
+    full_line_marker,
+    jprint,
+)
 from .util import (
     ConfigurationError,
     make_all_files_in_dir_writable,
-)
-from .printing import (
-    jprint,
-    full_line_marker,
 )
 
 
@@ -126,11 +126,8 @@ def get_mod_info_from_weidu_log(install_dir: str) -> dict:
     """
     weidu_log_path = os.path.join(install_dir, "weidu.log")
     res = weidu_log_to_build_dict(weidu_log_path)
-    mod_list = res['mods']
-    return {
-        k['mod']: k
-        for k in mod_list
-    }
+    mod_list = res["mods"]
+    return {k["mod"]: k for k in mod_list}
 
 
 def execute_mod_installation(
@@ -314,6 +311,7 @@ def _convert_components_dicts_list_to_lists_list(
     -------
     List[Tuple[str]]
         The list of corresponding 2-tuples.
+
     """
     return [(c["number"], c["description"]) for c in components_dict]
 
@@ -356,9 +354,11 @@ def mod_is_installed_identically(
     #     f" against install_info:\n {mod_installation}"
     # )
     installed_comp_list = _convert_components_dicts_list_to_lists_list(
-        mod_installation["components"])
+        mod_installation["components"]
+    )
     desired_comp_list = _convert_components_dicts_list_to_lists_list(
-        desired_components)
+        desired_components
+    )
     return (
         mod_installation["mod"] == mod_name
         and mod_installation["version"] == mod_version
@@ -408,17 +408,22 @@ def _resolve_game_dir(
 
 
 def print_run_config_info_box(runcfg: dict, console: Console) -> None:
-    tcolor = 'deep_sky_blue1'
+    tcolor = "deep_sky_blue1"
     table1 = Table()
     table1.add_column(
-        "Build Name", justify="center", style=tcolor, no_wrap=True)
+        "Build Name", justify="center", style=tcolor, no_wrap=True
+    )
     table1.add_column("Game", justify="center", style=tcolor, no_wrap=True)
     table1.add_column(
-        "Game Install Dir", justify="center", style=tcolor, no_wrap=True)
+        "Game Install Dir", justify="center", style=tcolor, no_wrap=True
+    )
     table1.add_column("Language", justify="center", style=tcolor, no_wrap=True)
     table1.add_column(
-        "Force lang in weidu.conf", justify="center", style=tcolor,
-        no_wrap=True)
+        "Force lang in weidu.conf",
+        justify="center",
+        style=tcolor,
+        no_wrap=True,
+    )
     table1.add_row(
         f"{runcfg.get('build_name')}",
         f"{runcfg.get('game')}",
@@ -429,11 +434,14 @@ def print_run_config_info_box(runcfg: dict, console: Console) -> None:
 
     table2 = Table()
     table2.add_column(
-        "Skip Installed Mods", justify="center", style=tcolor, no_wrap=True)
+        "Skip Installed Mods", justify="center", style=tcolor, no_wrap=True
+    )
     table2.add_column(
-        "Pause Every X Mods", justify="center", style=tcolor, no_wrap=True)
+        "Pause Every X Mods", justify="center", style=tcolor, no_wrap=True
+    )
     table2.add_column(
-        "State File Path", justify="center", style=tcolor, no_wrap=True)
+        "State File Path", justify="center", style=tcolor, no_wrap=True
+    )
     table2.add_row(
         f"{runcfg.get('skip_installed_mods')}",
         f"{runcfg.get('pause_every_x_mods')}",
@@ -449,20 +457,28 @@ def print_run_config_info_box(runcfg: dict, console: Console) -> None:
 
 
 def print_mod_info_box(mod: dict, console: Console) -> None:
-    tcolor = 'deep_sky_blue1'
+    tcolor = "deep_sky_blue1"
     table = Table()
     table.add_column("Name", justify="center", style=tcolor, no_wrap=True)
     table.add_column("Version", justify="center", style=tcolor, no_wrap=True)
-    table.add_column("Language Int", justify="center", style=tcolor, no_wrap=True)
-    table.add_column("Install List", justify="center", style=tcolor, no_wrap=True)
-    table.add_row(f"{mod['mod']}", f"{mod['version']}", f"{mod['language_int']}", f"{mod['install_list']}")
+    table.add_column(
+        "Language Int", justify="center", style=tcolor, no_wrap=True
+    )
+    table.add_column(
+        "Install List", justify="center", style=tcolor, no_wrap=True
+    )
+    table.add_row(
+        f"{mod['mod']}",
+        f"{mod['version']}",
+        f"{mod['language_int']}",
+        f"{mod['install_list']}",
+    )
     console.print(table)
-
 
     table = Table(title="Components List")
     table.add_column("Number", justify="center", style=tcolor, no_wrap=True)
     table.add_column("Description", justify="left", style=tcolor, no_wrap=True)
-    for c in mod['components']:
+    for c in mod["components"]:
         table.add_row(f"{c['number']}", f"{c['description']}")
     console.print(table)
     # rprint(Panel(Pretty(mod), title=mod["mod"], style="magenta"))
@@ -508,6 +524,7 @@ def run_build(
         Default is False.
     resume : bool, optional
         Whether to resume the build from a state file. Default is False.
+
     """
     full_line_marker()
     jprint("[green]Starting the build process!")
@@ -608,14 +625,14 @@ def run_build(
                 "No state file found in the game directory to resume the build"
                 " from. Please provide a path to the state file."
             )
-        jprint(
-            f"Resuming build from state file: {state_file_path}")
+        jprint(f"Resuming build from state file: {state_file_path}")
 
     start_index = 0
     if state_file_path:
         if os.path.exists(state_file_path):
             start_index = get_start_index_from_build_state_file(
-                state_file_path)
+                state_file_path
+            )
         else:
             raise FileNotFoundError(
                 f"State file {state_file_path} does not exist."
@@ -637,7 +654,8 @@ def run_build(
         ):
             jprint(
                 f"[yellow]{mod_name} is already identically installed, "
-                "skipping...")
+                "skipping..."
+            )
             continue
         log_file = f'setup-{mod_name.lower().replace(" ", "_")}.debug'
 
@@ -675,10 +693,10 @@ def run_build(
         if not success:
             jprint(
                 f"[red]Installation of [/red][deep_sky_blue3]{mod_name} [red]failed, "
-                "terminating the build process.")
+                "terminating the build process."
+            )
             write_ongoing_state(build_name, i, new_state_file_path)
-            jprint(
-                f"[yellow]Build state saved to {new_state_file_path}")
+            jprint(f"[yellow]Build state saved to {new_state_file_path}")
             sys.exit(1)
 
         # Pause installation every x mods as required
@@ -688,15 +706,9 @@ def run_build(
                 "mods. Press Enter or type 'yes'/'y' to continue, or any "
                 "other key to halt: "
             )
-            user_input = (
-                input()
-                .strip()
-                .lower()
-            )
+            user_input = input().strip().lower()
             if user_input not in ("", "yes", "y"):
-                jprint(
-                    "[green]Halting the process based on user input.")
+                jprint("[green]Halting the process based on user input.")
                 write_ongoing_state(build_name, i, new_state_file_path)
-                jprint(
-                    f"[green]Build state saved to {new_state_file_path}")
+                jprint(f"[green]Build state saved to {new_state_file_path}")
                 sys.exit(0)

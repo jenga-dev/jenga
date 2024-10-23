@@ -38,12 +38,14 @@ def check_all_files_in_dir_are_writeable(path: str) -> None:
             if not os.access(os.path.join(root, momo), os.W_OK):
                 jprint(
                     f"[red]Directory {os.path.join(root, momo)} "
-                    "is not writable.")
+                    "is not writable."
+                )
         # check perms for files
         for momo in files:
             if not os.access(os.path.join(root, momo), os.W_OK):
                 jprint(
-                    f"[red]File {os.path.join(root, momo)} is not writable.")
+                    f"[red]File {os.path.join(root, momo)} is not writable."
+                )
 
 
 def make_all_files_in_dir_writable(path: str) -> None:

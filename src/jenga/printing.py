@@ -1,4 +1,5 @@
 """Printing utilities."""
+
 from rich import print as rprint
 
 JENGA_MARKER = "[purple]Jenga }}} [/purple]"
@@ -13,4 +14,3 @@ def jprint(*args, **kwargs) -> None:
 def full_line_marker() -> None:
     """Print full line Jenga marker."""
     rprint(JENGA_FULL_LINE_MARKER)
-

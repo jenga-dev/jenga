@@ -47,6 +47,7 @@ def resume_partial_build(
         The path to the state file to resume from. If not provided, the game
         directory will be searched for the most recent state file for this
         build.
+
     """
     run_build(
         build_file_path=build_file_path,

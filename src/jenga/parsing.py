@@ -1,6 +1,5 @@
 """Weidu log parsing functionality for Jenga."""
 
-
 import re
 from typing import Dict
 
@@ -19,6 +18,7 @@ def weidu_log_to_build_dict(
     -------
     dict
         A dictionary containing the build information.
+
     """
     # Dictionary to store mods information
     mods_info: Dict = {}
