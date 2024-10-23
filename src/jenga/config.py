@@ -3,6 +3,8 @@
 from typing import Optional
 
 import birch
+from rich.console import Console
+from rich.table import Table
 
 
 class CfgKey:
@@ -16,7 +18,7 @@ class CfgKey:
     PSTEE_DIR_PATH = "PSTEE_DIR_PATH"
     ZIPPED_MOD_CACHE_DIR_PATH = "ZIPPED_MOD_CACHE_DIR_PATH"
     EXTRACTED_MOD_CACHE_DIR_PATH = "EXTRACTED_MOD_CACHE_DIR_PATH"
-    DEFAULT_LANGUAGE = "DEFAULT_LANGUAGE"
+    DEFAULT_LANG = "DEFAULT_LANG"
     NUM_RETRIES = "NUM_RETRIES"
     STOP_ON_WARNING = "STOP_ON_WARNING"
     STOP_ON_ERROR = "STOP_ON_ERROR"
@@ -25,7 +27,7 @@ class CfgKey:
 CFG = birch.Birch(
     namespace="jenga",
     defaults={
-        CfgKey.DEFAULT_LANGUAGE: "en_us",
+        CfgKey.DEFAULT_LANG: "en_us",
         CfgKey.NUM_RETRIES: 0,
         CfgKey.STOP_ON_WARNING: False,
         CfgKey.STOP_ON_ERROR: True,
@@ -46,7 +48,7 @@ IWD2EE_DIR_PATH = CFG.get(CfgKey.IWD2EE_DIR_PATH)
 PSTEE_DIR_PATH = CFG.get(CfgKey.PSTEE_DIR_PATH)
 ZIPPED_MOD_CACHE_DIR_PATH = CFG.get(CfgKey.ZIPPED_MOD_CACHE_DIR_PATH)
 EXTRACTED_MOD_CACHE_DIR_PATH = CFG.get(CfgKey.EXTRACTED_MOD_CACHE_DIR_PATH)
-DEFAULT_LANGUAGE = CFG.get(CfgKey.DEFAULT_LANGUAGE)
+DEFAULT_LANG = CFG.get(CfgKey.DEFAULT_LANG)
 NUM_RETRIES = CFG.get(CfgKey.NUM_RETRIES)
 STOP_ON_WARNING = CFG.get(CfgKey.STOP_ON_WARNING)
 STOP_ON_ERROR = CFG.get(CfgKey.STOP_ON_ERROR)
@@ -67,6 +69,17 @@ def get_all_game_dirs() -> list[str | None]:
 def print_config() -> None:
     """Print the configuration."""
     print(CFG.as_str())
+
+
+def print_config_info_box() -> None:
+    """Print the configuration in a rich info box."""
+    console = Console()
+    table = Table(title="Jenga Configuration", show_header=False)
+    table.add_column("Key", style="bold")
+    table.add_column("Value", style="bold")
+    for key, value in CFG._val_dict.items():
+        table.add_row(key, str(value))
+    console.print(table)
 
 
 _GAME_ALIAS_TO_DIR_PATH = {

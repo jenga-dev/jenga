@@ -4,7 +4,7 @@ import typer
 from typing_extensions import Annotated
 
 from jenga import (
-    print_config,
+    print_config_info_box,
     run_build,
     weidu_log_to_json_build_file,
     weidu_log_to_yaml_build_file,
@@ -47,11 +47,11 @@ def resume_partial_build(
         The path to the state file to resume from. If not provided, the game
         directory will be searched for the most recent state file for this
         build.
-
     """
-    resume_partial_build(
+    run_build(
         build_file_path=build_file_path,
         state_file_path=state_file_path,
+        resume=True,
     )
 
 
@@ -102,7 +102,7 @@ def convert_weidu_log_to_yaml_build_file(
 @app.command()
 def print_configuration() -> None:
     """Print the configuration."""
-    print_config()
+    print_config_info_box()
 
 
 def cli():
