@@ -172,7 +172,7 @@ def reorder_build_file_by_build_order_file(
 ) -> None:
     """Reorders the mod portion of a build file by a build order file.
 
-    This method support the spliting of a mod install component into
+    This method support the splitting of a mod install component into
     several ones.
 
     Also, every mod name encountered in the txt file that is not in the build
@@ -194,7 +194,7 @@ def reorder_build_file_by_build_order_file(
 
     Examples
     --------
-    This method support the spliting of a mod install component into
+    This method support the splitting of a mod install component into
     several ones.
 
     For example, if the build file contains the following mod install:
@@ -228,9 +228,9 @@ def reorder_build_file_by_build_order_file(
     ITEM_REV 0
     ITEM_REV 1030
     ITEM_REV 10 17 19 1070 1080 1200
-    In three seperate rows (possibly not contiguous), the mods section of the
+    In three separate rows (possibly not contiguous), the mods section of the
     reorderd build file will have split the ITEM_REV mod install into three
-    seperate mod installs, each with its own components:
+    separate mod installs, each with its own components:
     mods: [
         {
             "mod": "ITEM_REV",
@@ -287,7 +287,7 @@ def reorder_build_file_by_build_order_file(
     MOD_B
 
     Will result in the following entry for MOD_NOT_IN_BUILD directly after the
-    entery for MOD_A and directly before the entry for MOD_B:
+    entry for MOD_A and directly before the entry for MOD_B:
     {
         "mod": "MOD_NOT_IN_BUILD",
         "version": "Unknown",

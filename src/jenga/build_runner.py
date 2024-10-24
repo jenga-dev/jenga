@@ -1,12 +1,14 @@
 """The Jenga build runner."""
 
 # Standard library imports
-import json
 import os
+import sys
+import json
 import shutil
 import subprocess
-import sys
 import warnings
+from io import StringIO
+from enum import Enum
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
@@ -140,6 +142,14 @@ def get_mod_info_from_weidu_log(install_dir: str) -> dict:
     return {k["mod"]: k for k in mod_list}
 
 
+class InstallationStatus(Enum):
+    """The installation status."""
+
+    SUCCESS = "success"
+    WARNINGS = "warnings"
+    FAILURE = "failure"
+
+
 def execute_mod_installation(
     weidu_exec_path: str,
     mod_dir_path: str,
@@ -149,8 +159,8 @@ def execute_mod_installation(
     install_list: str,
     log_file: str,
     lang: str,
-) -> bool:
-    """Execute installation command and return success.
+) -> InstallationStatus:
+    """Execute installation command and return the result.
 
     Parameters
     ----------
@@ -175,9 +185,8 @@ def execute_mod_installation(
 
     Returns
     -------
-    bool
-        Whether the installation was successful.
-
+    InstallationStatus
+        The installation status.
     """
     os.chmod(weidu_exec_path, 0o755)
     os.chmod(mod_tp2_path, 0o755)
@@ -201,25 +210,31 @@ def execute_mod_installation(
     ]
     oper_print(">>> Running command:")
     oper_print(" ".join(command))
-    proc = subprocess.Popen(  # nosec - subprocess.Popen is safe
+    proc = subprocess.Popen(
         " ".join(command),
         stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
         shell=True,
         universal_newlines=True,
         cwd=game_install_dir,
     )
-
     with open(log_file, "ab") as lf:
         for stdout_line in proc.stdout:
             print(stdout_line, end="")
             lf.write(stdout_line.encode("utf-8"))
-        for stderr_line in proc.stderr:
-            print(stderr_line, end="", file=sys.stderr)
-            lf.write(stderr_line.encode("utf-8"))
+            # out.write(stdout_line)
+    proc.stdout.close()
+    returncode = proc.wait()
 
-    proc.wait()
-    return proc.returncode == 0
+    # for more on WeiDU return codes, see
+    # Section 13.2  "WeiDU Return Values", in the WeiDU readme:
+    # https://weidu.org/~thebigg/beta/README-WeiDU.html#sec56
+    if returncode == 0:
+        return InstallationStatus.SUCCESS
+    elif returncode == 3:
+        return InstallationStatus.WARNINGS
+    else:
+        return InstallationStatus.FAILURE
 
 
 def get_start_index_from_build_state_file(state_file_path: str) -> int:
@@ -728,7 +743,7 @@ def run_build(
                 sccs_print(f"Applied {fix.fix_name}.")
 
         oper_print(f"Installing {mod_name}...")
-        success = execute_mod_installation(
+        status = execute_mod_installation(
             weidu_exec_path,
             target_mod_dir,
             mod_tp2_path,
@@ -739,14 +754,27 @@ def run_build(
             lang,
         )
 
-        if not success:
+        if status == InstallationStatus.FAILURE:
             fail_print(
-                f"Installation of [{OPER_CLR}]{mod_name}[/{OPER_CLR}] failed"
-                ", terminating the build process."
+                "Installation of at least one component of "
+                f"[{OPER_CLR}]{mod_name}[/{OPER_CLR}] failed. "
+                "Terminating the build process."
             )
             write_ongoing_state(build_name, i, new_state_file_path)
             note_print(f"Build state saved to {new_state_file_path}")
             sys.exit(1)
+        elif status == InstallationStatus.WARNINGS:
+            note_print(
+                f"Installation of [{OPER_CLR}]{mod_name}[/{OPER_CLR}] "
+                "completed with warnings. Would you like to continue the build"
+                "process? (Enter 'y'/'yes' to continue, any other input to "
+                "halt."
+            )
+            user_input = input().strip().lower()
+            if user_input not in ("yes", "y"):
+                write_ongoing_state(build_name, i, new_state_file_path)
+                note_print(f"Build state saved to {new_state_file_path}")
+                sys.exit(1)
         sccs_print(f"{mod_name} installed successfully.")
 
         # Apply any post-fixes for the mod
