@@ -60,7 +60,7 @@ def update_weidu_conf(game_dir: str, lang: str) -> None:
     """
     weidu_conf_path = os.path.join(game_dir, "weidu.conf")
     lang_dir_line = f"lang_dir = {lang}\n"
-    oper_print(f"Setting {lang_dir_line} in weidu.conf...")
+    oper_print(f"Setting {lang_dir_line[:-1]} in weidu.conf...")
     # Read the original content of the configuration file
     # If the weidu.conf does not exist, initialize with the new language line
     if not os.path.exists(weidu_conf_path):
