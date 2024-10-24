@@ -110,6 +110,9 @@ def fuzzy_find(directory: str, name: str, file_type: str = ".tp2") -> str:
         )
     best_match, score = result
     if score < 50:
+        if not name.startswith("setup-"):
+            setup_prefixed = f"setup-{name.lower()}"
+            return fuzzy_find(directory, setup_prefixed, file_type)
         raise FileNotFoundError(
             f"Unable to locate {name}{file_type} with "
             "sufficient accuracy in {directory.}"
