@@ -1,7 +1,7 @@
 """Jenga mod-specific fixes."""
 
 # stdlib imports
-from typing import List, Dict, Sequence
+from typing import Dict, List, Sequence
 
 # 3rd party imports
 from birch import Birch
@@ -19,6 +19,7 @@ class JengaFix:
     ----------
     fix_name : str
         The name of the fix.
+
     """
 
     def __init__(self, mod_name):
@@ -67,7 +68,6 @@ class AnotherFineHellAfhvisFix(JengaFix):
     REP_FNAME = "c#afhjng.baf"
     SCR_DNAME = "scripts"
 
-
     def apply(
         self,
         mod_dir: str,
@@ -76,10 +76,12 @@ class AnotherFineHellAfhvisFix(JengaFix):
         run_config: dict,
     ) -> None:
         import os
+
         afvis_path = os.path.join(mod_dir, self.SCR_DNAME, self.AFVIS_FNAME)
         rep_path = os.path.join(mod_dir, self.SCR_DNAME, self.REP_FNAME)
         # copy afvhvis.baf to afhjng.baf
         import shutil
+
         shutil.copy(afvis_path, rep_path)
         # update tp2 file to use afhjng.baf for the the MOVE command
         with open(mod_tp2_path, "r") as f:
@@ -90,6 +92,7 @@ class AnotherFineHellAfhvisFix(JengaFix):
                     f.write(line.replace(self.AFVIS_FNAME, self.REP_FNAME))
                 else:
                     f.write(line)
+
 
 # Mod Names
 AFH = "AnotherFineHell"
@@ -129,6 +132,7 @@ def get_fixes_for_mod(mod_name: str, prefix: bool) -> Sequence[JengaFix]:
     -------
     Sequece[JengaFix]
         A list of any fixes to apply before/after the specified mod.
+
     """
     uniform_name = MOD_ALIAS_REGISTRY.get(mod_name.lower(), mod_name.lower())
     registry = PRE_FIXES_REGISTRY if prefix else POST_FIXES_REGISTRY

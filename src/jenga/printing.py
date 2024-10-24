@@ -2,7 +2,6 @@
 
 from rich import print as rprint
 
-
 JENG_CLR = "purple"
 OPER_CLR = "deep_sky_blue1"
 SCCS_CLR = "green"
@@ -42,6 +41,7 @@ def fail_print(*args, **kwargs) -> None:
 def full_line_marker() -> None:
     """Print full line Jenga marker."""
     rprint(JENGA_FULL_LINE_MARKER)
+
 
 def print_goodbye() -> None:
     """Print goodbye message."""

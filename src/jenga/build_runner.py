@@ -22,26 +22,26 @@ from .config import (
     get_game_dir,
     print_config_info_box,
 )
+from .fixes import (
+    get_fixes_for_mod,
+)
 
 # Local imports
 from .parsing import (
     weidu_log_to_build_dict,
 )
 from .printing import (
-    full_line_marker,
-    oper_print,
-    sccs_print,
-    note_print,
-    fail_print,
     OPER_CLR,
+    fail_print,
+    full_line_marker,
+    note_print,
+    oper_print,
     print_goodbye,
+    sccs_print,
 )
 from .util import (
     ConfigurationError,
     make_all_files_in_dir_writable,
-)
-from .fixes import (
-    get_fixes_for_mod,
 )
 
 
@@ -49,7 +49,6 @@ def update_weidu_conf(game_dir: str, lang: str) -> None:
     """Update or append the language setting in weidu.conf.
 
     Parameters
-
     ----------
     game_dir : str
         The directory where the game is installed.
@@ -661,8 +660,7 @@ def run_build(
             mod_name, version, components, installed_mods_info
         ):
             note_print(
-                f"{mod_name} is already identically installed, "
-                "skipping..."
+                f"{mod_name} is already identically installed, " "skipping..."
             )
             continue
         log_file = f'setup-{mod_name.lower().replace(" ", "_")}.debug'
