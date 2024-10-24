@@ -2,14 +2,13 @@
 
 # standard library imports
 import json
-import yaml
 import pathlib
 from datetime import datetime
 from typing import Optional
 
-# 3rd party imports
 import yaml
 
+# 3rd party imports
 # local imports
 from .parsing import weidu_log_to_build_dict
 from .printing import (
@@ -130,6 +129,7 @@ def build_file_to_build_order_file(
     build_order_file_path : str, optional
         The path to the output build order file. If not provided, a file name
         of the pattern jenga_build_order_<build_name>.txt will be created.
+
     """
     oper_print(
         "Extracting build order from Jenga build file in:\n"
@@ -148,19 +148,20 @@ def build_file_to_build_order_file(
             f"Unsupported build file type: {build_file_type}. "
             "Supported types are 'json' and 'yaml'."
         )
-    build_name = build['config']['build_name']
+    build_name = build["config"]["build_name"]
     if build_order_file_path is None:
         build_order_file_name = f"jenga_build_order_{build_name}.txt"
         build_file_dir = pathlib.Path(build_file_path).parent
         build_order_file_path = str(build_file_dir / build_order_file_name)
     mods = build["mods"]
     build_order = [mod["mod"] for mod in mods]
-    with open(build_order_file_path, "wt+", encoding="utf-8") as build_order_file:
+    with open(
+        build_order_file_path, "wt+", encoding="utf-8"
+    ) as build_order_file:
         for mod in build_order:
             build_order_file.write(f"{mod}\n")
     sccs_print(
-        "Build order extracted and written to:\n"
-        f"{build_order_file_path}\n"
+        "Build order extracted and written to:\n" f"{build_order_file_path}\n"
     )
 
 
@@ -295,6 +296,7 @@ def reorder_build_file_by_build_order_file(
         "components": [],
         "prompt_for_manual_install": true
     }
+
     """
     oper_print(
         "Reordering Jenga build file in:\n"
@@ -326,7 +328,9 @@ def reorder_build_file_by_build_order_file(
             )
 
     # Read the build order file
-    with open(build_order_file_path, "rt", encoding="utf-8") as build_order_file:
+    with open(
+        build_order_file_path, "rt", encoding="utf-8"
+    ) as build_order_file:
         build_order = build_order_file.readlines()
 
     # Reorder the build file
@@ -342,7 +346,11 @@ def reorder_build_file_by_build_order_file(
 
         if mod_name in mod_dict:
             original_mod = mod_dict[mod_name]
-            matched_components = [comp for comp in original_mod["components"] if comp["number"] in components]
+            matched_components = [
+                comp
+                for comp in original_mod["components"]
+                if comp["number"] in components
+            ]
 
             # If no components specified, use all available
             if not components:
@@ -352,7 +360,9 @@ def reorder_build_file_by_build_order_file(
                 "mod": mod_name,
                 "version": original_mod.get("version", "Unknown"),
                 "language_int": original_mod.get("language_int", "0"),
-                "install_list": " ".join(comp["number"] for comp in matched_components),
+                "install_list": " ".join(
+                    comp["number"] for comp in matched_components
+                ),
                 "components": matched_components,
             }
             new_mods.append(new_mod_entry)
@@ -375,7 +385,9 @@ def reorder_build_file_by_build_order_file(
         if build_file_type == "json":
             json.dump(build, build_file, indent=4)
         elif build_file_type == "yaml":
-            yaml.dump(build, build_file, default_flow_style=False, sort_keys=False)
+            yaml.dump(
+                build, build_file, default_flow_style=False, sort_keys=False
+            )
 
     sccs_print(
         "Build file reordered and written to:\n"

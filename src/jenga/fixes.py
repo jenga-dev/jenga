@@ -54,6 +54,7 @@ class JengaFix:
 
 # ===== AnotherFineHell Fixes =====
 
+
 class AnotherFineHellAfhvisFix(JengaFix):
     __doc__ = (
         JengaFix.__doc__
@@ -96,6 +97,7 @@ class AnotherFineHellAfhvisFix(JengaFix):
 
 # ===== EET_END Fixes =====
 
+
 def fix_pdialog_files_in_directory(directory_path: str) -> None:
     """Fix pdialog.2da files by removing lines with only a single word.
 
@@ -103,6 +105,7 @@ def fix_pdialog_files_in_directory(directory_path: str) -> None:
     ----------
     directory_path : str
         The path to the directory to search for pdialog.2da files.
+
     """
     for root, _, files in os.walk(directory_path):
         for file_name in files:
@@ -122,12 +125,13 @@ def fix_pdialog_file(file_path: str) -> None:
     Examples
     --------
     fix_pdialog_files_in_directory("/path/to/directory")
+
     """
-    with open(file_path, 'rt', encoding='utf-8') as file:
+    with open(file_path, "rt", encoding="utf-8") as file:
         lines = file.readlines()
     # Filter out lines with only a single word
     fixed_lines = [line for line in lines if len(line.split()) > 1]
-    with open(file_path, 'wt', encoding='utf-8') as file:
+    with open(file_path, "wt", encoding="utf-8") as file:
         file.writelines(fixed_lines)
 
 

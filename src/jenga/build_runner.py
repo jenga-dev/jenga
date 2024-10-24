@@ -660,8 +660,7 @@ def run_build(
         version = mod["version"]
         components = mod["components"]
         install_list = mod["install_list"]
-        prompt_for_manual_install = mod.get(
-            "prompt_for_manual_install", False)
+        prompt_for_manual_install = mod.get("prompt_for_manual_install", False)
 
         if prompt_for_manual_install:
             user_input = "blah"
