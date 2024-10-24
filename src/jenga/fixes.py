@@ -4,13 +4,14 @@
 from birch import Birch
 
 
-class JengaFix():
+class JengaFix:
     """A runnable object that fixes a specific mod issue during a Jenga build.
 
     Parameters
     ----------
     mod_name : str
         The name of the mod that the fix is for.
+
     """
 
     def __init__(self, mod_name):
@@ -35,16 +36,20 @@ class JengaFix():
             The Jenga configuration.
         run_config : dict
             The run configuration.
+
         """
         raise NotImplementedError("Fixes must implement the run method.")
 
 
 class AnotherFineHellAfhvisFix(JengaFix):
-    __doc__ = JengaFix.__doc__ + """
+    __doc__ = (
+        JengaFix.__doc__
+        + """
     Fixes an issue for AnotherFineHell on MacOS where installation fails du to
     ERROR: error loading [c#anotherfinehell/scripts/c#afhvis.baf]
     ERROR: compiling [c#anotherfinehell/scripts/c#afhvis.baf]!
     """
+    )
 
     def run(
         self,
