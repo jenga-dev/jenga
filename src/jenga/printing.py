@@ -22,20 +22,20 @@ def jprint(*args, **kwargs) -> None:
     rprint(JENGA_MARKER, *args, **kwargs)
 
 
-def oper_print(*args, **kwargs) -> None:
-    rprint(JENGA_MARKER, f"[{OPER_CLR}]", *args, **kwargs)
+def oper_print(msg) -> None:
+    rprint(JENGA_MARKER + f"[{OPER_CLR}] {msg}")
 
 
-def sccs_print(*args, **kwargs) -> None:
-    rprint(JENGA_MARKER, f"[{SCCS_CLR}]", *args, **kwargs)
+def sccs_print(msg) -> None:
+    rprint(JENGA_MARKER + f"[{SCCS_CLR}] {msg}")
 
 
-def note_print(*args, **kwargs) -> None:
-    rprint(JENGA_MARKER, f"[{NOTE_CLR}]", *args, **kwargs)
+def note_print(msg) -> None:
+    rprint(JENGA_MARKER + f"[{NOTE_CLR}] {msg}")
 
 
-def fail_print(*args, **kwargs) -> None:
-    rprint(JENGA_MARKER, f"[{FAIL_CLR}]", *args, **kwargs)
+def fail_print(msg) -> None:
+    rprint(JENGA_MARKER + f"[{FAIL_CLR}] {msg}")
 
 
 def full_line_marker() -> None:

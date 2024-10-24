@@ -1,14 +1,22 @@
 """Command line interface for the jenga package."""
 
+# stdlib imports
+from typing import Optional
+
+# 3rd party imports
 import typer
 from typing_extensions import Annotated
 
+# local imports
 from jenga import (
     print_config_info_box,
     run_build,
     weidu_log_to_json_build_file,
     weidu_log_to_yaml_build_file,
+    build_file_to_build_order_file,
+    reorder_build_file_by_build_order_file as reorder_bfile_by_border_file,
 )
+
 
 app = typer.Typer()
 
@@ -98,6 +106,55 @@ def convert_weidu_log_to_yaml_build_file(
 
     """
     weidu_log_to_yaml_build_file(weidu_log_path, build_file_path)
+
+
+@app.command()
+def convert_build_file_to_build_order_file(
+    build_file_path: str,
+    build_order_file_path: Annotated[
+        Optional[str],
+        typer.Option(help="The path to the build order file to create.")
+    ] = None,
+) -> None:
+    """Convert a Jenga build file to a Jenga build order file.
+
+    Parameters
+    ----------
+    build_file_path : str
+        The path to the Jenga build file.
+    build_order_file_path : str, optional
+        The path to the output build order file. If not provided, a file name
+        of the pattern jenga_build_order_<build will
+        be created.
+
+    """
+    build_file_to_build_order_file(build_file_path, build_order_file_path)
+
+
+@app.command()
+def reorder_build_file_by_build_order_file(
+    build_file_path: str,
+    build_order_file_path: str,
+    reordered_build_file_path: Annotated[
+        Optional[str],
+        typer.Option(help="The path to the reordered build file to create.")
+    ] = None,
+) -> None:
+    """Reorder a Jenga build file by a Jenga build order file.
+
+    Parameters
+    ----------
+    build_file_path : str
+        The path to the Jenga build file.
+    build_order_file_path : str
+        The path to the Jenga build order file.
+    reordered_build_file_path : str, optional
+        The path to the output reordered build file. If not provided, a file
+        name of the pattern reordered_<build_file_name> will be created.
+    """
+    reorder_bfile_by_border_file(
+        build_file_path, build_order_file_path, reordered_build_file_path,
+    )
 
 
 @app.command()

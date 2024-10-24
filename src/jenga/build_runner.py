@@ -488,7 +488,7 @@ def print_mod_info_box(mod: dict, console: Console) -> None:
     for c in mod["components"]:
         table.add_row(f"{c['number']}", f"{c['description']}")
     console.print(table)
-    # rprint(Panel(Pretty(mod), title=mod["mod"], style="magenta"))
+    # rprint(Panel(Pretty(omod), title=mod["mod"], style="magenta"))
 
 
 def run_build(
@@ -536,6 +536,7 @@ def run_build(
     full_line_marker()
     oper_print("Starting the build process!")
     oper_print("Reading the build file...")
+
     # Handling optional arguments
     extracted_mods_dir = extracted_mods_dir or CFG.get(
         CfgKey.EXTRACTED_MOD_CACHE_DIR_PATH
@@ -584,8 +585,12 @@ def run_build(
     run_config["skip_installed_mods"] = skip_installed_mods
     if skip_installed_mods:
         installed_mods_info = get_mod_info_from_weidu_log(game_install_dir)
-
     build_name = config.get("build_name")
+    if build_name is None:
+        raise ValueError(
+            "The build file must contain a 'build_name' key in the config "
+            "section, mapping to a string suitable as a file name component."
+        )
     lang = config.get("lang")
     if lang is None:
         lang = CFG.get(CfgKey.DEFAULT_LANG)
@@ -655,6 +660,30 @@ def run_build(
         version = mod["version"]
         components = mod["components"]
         install_list = mod["install_list"]
+        prompt_for_manual_install = mod.get(
+            "prompt_for_manual_install", False)
+
+        if prompt_for_manual_install:
+            user_input = "blah"
+            while user_input not in ("m", "manual", "s", "skip", "f", "force"):
+                note_print(
+                    f"Prompting for manual installation of {mod_name}. "
+                    "Press Enter or type 'm'/'manual' to save build state and "
+                    "halt; type 's'/'skip' to skip this mod and continue; "
+                    "type 'f'/'force' to attempt to install the mod anyway."
+                )
+                user_input = input().strip().lower()
+                if user_input in ("m", "manual"):
+                    oper_print("Halting the process based on user input.")
+                    write_ongoing_state(build_name, i, new_state_file_path)
+                    sccs_print(f"Build state saved to {new_state_file_path}")
+                    print_goodbye()
+                    sys.exit(0)
+                elif user_input in ("s", "skip"):
+                    note_print(f"Skipping {mod_name}...")
+                    continue
+                elif user_input in ("f", "force"):
+                    pass
 
         if skip_installed_mods and mod_is_installed_identically(
             mod_name, version, components, installed_mods_info
