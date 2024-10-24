@@ -3,7 +3,6 @@
 # Standard library imports
 import json
 import os
-import platform
 import shutil
 import subprocess
 import sys
@@ -672,11 +671,9 @@ def run_build(
             shutil.rmtree(target_mod_dir)
         print(f"Copying {mod_dir} to {target_mod_dir}...")
         shutil.copytree(mod_dir, target_mod_dir)
+        make_all_files_in_dir_writable(target_mod_dir)
         # Find .tp2 file inside
         mod_tp2_path = fuzzy_find(target_mod_dir, mod_name, ".tp2")
-        # if running_on_mac:
-        #     # Fix the paths in the .tp2 file
-        #     mirror_backslashes_in_file(mod_tp2_path)
 
         jprint(f"[green]Installing {mod_name}...")
         success = execute_mod_installation(
