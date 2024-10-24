@@ -49,7 +49,7 @@ def check_all_files_in_dir_are_writeable(path: str) -> None:
 
 
 def make_all_files_in_dir_writable(path: str) -> None:
-    print(f"Making all files in {path} writable...")
+    jprint(f"[green]Making all files in {path} writable...")
     os.system(f'sudo chmod 777 "{path}"')
     os.system(f'sudo chmod -R 777 "{path}"')
     # permission = 0o777

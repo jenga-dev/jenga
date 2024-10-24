@@ -29,11 +29,19 @@ from .parsing import (
 )
 from .printing import (
     full_line_marker,
-    jprint,
+    oper_print,
+    sccs_print,
+    note_print,
+    fail_print,
+    OPER_CLR,
+    print_goodbye,
 )
 from .util import (
     ConfigurationError,
     make_all_files_in_dir_writable,
+)
+from .fixes import (
+    get_fixes_for_mod,
 )
 
 
@@ -41,6 +49,7 @@ def update_weidu_conf(game_dir: str, lang: str) -> None:
     """Update or append the language setting in weidu.conf.
 
     Parameters
+
     ----------
     game_dir : str
         The directory where the game is installed.
@@ -50,7 +59,7 @@ def update_weidu_conf(game_dir: str, lang: str) -> None:
     """
     weidu_conf_path = os.path.join(game_dir, "weidu.conf")
     lang_dir_line = f"lang_dir = {lang}\n"
-    print(lang_dir_line)
+    oper_print(f"Setting {lang_dir_line} in weidu.conf...")
     # Read the original content of the configuration file
     # If the weidu.conf does not exist, initialize with the new language line
     if not os.path.exists(weidu_conf_path):
@@ -188,8 +197,8 @@ def execute_mod_installation(
         "--use-lang",
         lang,
     ]
-    print("\n >>> Running command:")
-    print(" ".join(command))
+    oper_print(">>> Running command:")
+    oper_print(" ".join(command))
     proc = subprocess.Popen(  # nosec - subprocess.Popen is safe
         " ".join(command),
         stdout=subprocess.PIPE,
@@ -407,7 +416,7 @@ def _resolve_game_dir(
 
 
 def print_run_config_info_box(runcfg: dict, console: Console) -> None:
-    tcolor = "deep_sky_blue1"
+    tcolor = OPER_CLR
     table1 = Table()
     table1.add_column(
         "Build Name", justify="center", style=tcolor, no_wrap=True
@@ -456,7 +465,7 @@ def print_run_config_info_box(runcfg: dict, console: Console) -> None:
 
 
 def print_mod_info_box(mod: dict, console: Console) -> None:
-    tcolor = "deep_sky_blue1"
+    tcolor = OPER_CLR
     table = Table()
     table.add_column("Name", justify="center", style=tcolor, no_wrap=True)
     table.add_column("Version", justify="center", style=tcolor, no_wrap=True)
@@ -526,8 +535,8 @@ def run_build(
 
     """
     full_line_marker()
-    jprint("[green]Starting the build process!")
-    jprint("[green]Reading the build file...")
+    oper_print("Starting the build process!")
+    oper_print("Reading the build file...")
     # Handling optional arguments
     extracted_mods_dir = extracted_mods_dir or CFG.get(
         CfgKey.EXTRACTED_MOD_CACHE_DIR_PATH
@@ -609,9 +618,9 @@ def run_build(
     # if platform.system() == "Darwin":
     #     running_on_mac = True
 
-    jprint("[green]Build configuration:")
+    note_print("Build configuration:")
     print_run_config_info_box(run_config, console)
-    jprint("[green]Tool configuration:")
+    note_print("Tool configuration:")
     print_config_info_box()
 
     # Handling resuming from a build state file
@@ -624,7 +633,7 @@ def run_build(
                 "No state file found in the game directory to resume the build"
                 " from. Please provide a path to the state file."
             )
-        jprint(f"Resuming build from state file: {state_file_path}")
+        oper_print(f"Resuming build from state file: {state_file_path}")
 
     start_index = 0
     if state_file_path:
@@ -640,7 +649,7 @@ def run_build(
     for i in range(start_index, len(mods)):
         mod = mods[i]
         print("\n")
-        jprint("[green]Processing mod:")
+        oper_print("Processing mod:")
         print_mod_info_box(mod, console)
         mod_name = mod["mod"]
         language_int = mod["language_int"]
@@ -651,8 +660,8 @@ def run_build(
         if skip_installed_mods and mod_is_installed_identically(
             mod_name, version, components, installed_mods_info
         ):
-            jprint(
-                f"[yellow]{mod_name} is already identically installed, "
+            note_print(
+                f"{mod_name} is already identically installed, "
                 "skipping..."
             )
             continue
@@ -669,13 +678,27 @@ def run_build(
         make_all_files_in_dir_writable(target_mod_dir)
         if os.path.exists(target_mod_dir):
             shutil.rmtree(target_mod_dir)
-        print(f"Copying {mod_dir} to {target_mod_dir}...")
+        oper_print(f"Copying {mod_dir} to {target_mod_dir}...")
         shutil.copytree(mod_dir, target_mod_dir)
         make_all_files_in_dir_writable(target_mod_dir)
         # Find .tp2 file inside
         mod_tp2_path = fuzzy_find(target_mod_dir, mod_name, ".tp2")
 
-        jprint(f"[green]Installing {mod_name}...")
+        # Apply any pre-fixes for the mod
+        oper_print(f"Looking for pre-fixes for {mod_name}...")
+        pre_fixes = get_fixes_for_mod(mod_name, prefix=True)
+        if pre_fixes:
+            oper_print(f"Applying pre-fixes for {mod_name}...")
+            for fix in pre_fixes:
+                fix.apply(
+                    mod_dir=target_mod_dir,
+                    mod_tp2_path=mod_tp2_path,
+                    jenga_config=CFG,
+                    run_config=run_config,
+                )
+                sccs_print(f"Applied {fix.fix_name}.")
+
+        oper_print(f"Installing {mod_name}...")
         success = execute_mod_installation(
             weidu_exec_path,
             target_mod_dir,
@@ -688,24 +711,40 @@ def run_build(
         )
 
         if not success:
-            jprint(
-                f"[red]Installation of [/red][deep_sky_blue3]{mod_name} [red]failed, "
-                "terminating the build process."
+            fail_print(
+                f"Installation of [{OPER_CLR}]{mod_name}[/{OPER_CLR}] failed"
+                ", terminating the build process."
             )
             write_ongoing_state(build_name, i, new_state_file_path)
-            jprint(f"[yellow]Build state saved to {new_state_file_path}")
+            note_print(f"Build state saved to {new_state_file_path}")
             sys.exit(1)
+        sccs_print(f"{mod_name} installed successfully.")
+
+        # Apply any post-fixes for the mod
+        oper_print(f"Looking for post-fixes for {mod_name}...")
+        post_fixes = get_fixes_for_mod(mod_name, prefix=False)
+        if post_fixes:
+            oper_print(f"Applying post-fixes for {mod_name}...")
+            for fix in post_fixes:
+                fix.apply(
+                    mod_dir=target_mod_dir,
+                    mod_tp2_path=mod_tp2_path,
+                    jenga_config=CFG,
+                    run_config=run_config,
+                )
+                sccs_print(f"Applied {fix.fix_name}.")
 
         # Pause installation every x mods as required
         if (i + 1) % pause_every_x_mods == 0:
-            jprint(
-                f"[yellow]Paused after installing {pause_every_x_mods} "
+            note_print(
+                f"Paused after installing {pause_every_x_mods} "
                 "mods. Press Enter or type 'yes'/'y' to continue, or any "
                 "other key to halt: "
             )
             user_input = input().strip().lower()
             if user_input not in ("", "yes", "y"):
-                jprint("[green]Halting the process based on user input.")
+                oper_print("Halting the process based on user input.")
                 write_ongoing_state(build_name, i, new_state_file_path)
-                jprint(f"[green]Build state saved to {new_state_file_path}")
+                sccs_print(f"Build state saved to {new_state_file_path}")
+                print_goodbye()
                 sys.exit(0)
