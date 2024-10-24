@@ -1,15 +1,15 @@
 """The Jenga build runner."""
 
 # Standard library imports
-import os
-import sys
 import json
+import os
 import shutil
 import subprocess
+import sys
 import warnings
-from io import StringIO
-from enum import Enum
 from datetime import datetime
+from enum import Enum
+from io import StringIO
 from typing import Dict, List, Optional, Tuple
 
 # Third-party imports
@@ -187,6 +187,7 @@ def execute_mod_installation(
     -------
     InstallationStatus
         The installation status.
+
     """
     os.chmod(weidu_exec_path, 0o755)
     os.chmod(mod_tp2_path, 0o755)
