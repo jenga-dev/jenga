@@ -1,9 +1,23 @@
 """Command line interface for the jenga package."""
 
+# stdlib imports
+from typing import Optional
+
+# 3rd party imports
 import typer
 from typing_extensions import Annotated
 
-from jenga import weidu_log_to_build_file
+# local imports
+from jenga import (
+    build_file_to_build_order_file,
+    print_config_info_box,
+    run_build,
+    weidu_log_to_json_build_file,
+    weidu_log_to_yaml_build_file,
+)
+from jenga import (
+    reorder_build_file_by_build_order_file as reorder_bfile_by_border_file,
+)
 
 app = typer.Typer()
 
@@ -20,12 +34,17 @@ def run_full_build(
         The path to the build file.
 
     """
-    print(build_file_path)
+    run_build(
+        build_file_path=build_file_path,
+    )
 
 
 @app.command()
 def resume_partial_build(
     build_file_path: str,
+    state_file_path: Annotated[
+        str, typer.Option(help="The path to the state file to resume from.")
+    ] = None,
 ) -> None:
     """Resume a partial build of an BG:EET game.
 
@@ -33,37 +52,119 @@ def resume_partial_build(
     ----------
     build_file_path : str
         The path to the build file.
+    state_file_path : str, optional
+        The path to the state file to resume from. If not provided, the game
+        directory will be searched for the most recent state file for this
+        build.
 
     """
-    print(build_file_path)
+    run_build(
+        build_file_path=build_file_path,
+        state_file_path=state_file_path,
+        resume=True,
+    )
 
 
 @app.command()
-def convert_weidu_log_to_build_file(
+def convert_weidu_log_to_json_build_file(
     weidu_log_path: str,
     build_file_path: Annotated[
         str, typer.Option(help="The path to the json build file to create.")
     ] = None,
 ) -> None:
-    """Convert a WeiDU log file to a build file.
+    """Convert a WeiDU log file to a Jenga JSON build file.
 
     Parameters
     ----------
     weidu_log_path : str
         The path to the WeiDU log file.
-    build_file_path : str
-        The path to the build file to create.
+    build_file_path : str, optional
+        The path to the output JSON build file. If not provided, a file name
+        of the pattern <date:time>_jenga_build_from_weidu_log.json will be
+        created.
 
     """
-    if build_file_path is None:
-        build_file_path = weidu_log_path.replace(".log", ".json")
-    print(
-        "Converting WeiDU log file in:\n"
-        f"{weidu_log_path}\n"
-        "to a Jenga .json build file in:\n"
-        f"{build_file_path}\n..."
+    weidu_log_to_json_build_file(weidu_log_path, build_file_path)
+
+
+@app.command()
+def convert_weidu_log_to_yaml_build_file(
+    weidu_log_path: str,
+    build_file_path: Annotated[
+        str, typer.Option(help="The path to the yaml build file to create.")
+    ] = None,
+) -> None:
+    """Convert a WeiDU log file to a Jenga YAML build file.
+
+    Parameters
+    ----------
+    weidu_log_path : str
+        The path to the WeiDU log file.
+    build_file_path : str, optional
+        The path to the output YAML build file. If not provided, a file name
+        of the pattern <date:time>_jenga_build_from_weidu_log.yaml will be
+        created.
+
+    """
+    weidu_log_to_yaml_build_file(weidu_log_path, build_file_path)
+
+
+@app.command()
+def convert_build_file_to_build_order_file(
+    build_file_path: str,
+    build_order_file_path: Annotated[
+        Optional[str],
+        typer.Option(help="The path to the build order file to create."),
+    ] = None,
+) -> None:
+    """Convert a Jenga build file to a Jenga build order file.
+
+    Parameters
+    ----------
+    build_file_path : str
+        The path to the Jenga build file.
+    build_order_file_path : str, optional
+        The path to the output build order file. If not provided, a file name
+        of the pattern jenga_build_order_<build will
+        be created.
+
+    """
+    build_file_to_build_order_file(build_file_path, build_order_file_path)
+
+
+@app.command()
+def reorder_build_file_by_build_order_file(
+    build_file_path: str,
+    build_order_file_path: str,
+    reordered_build_file_path: Annotated[
+        Optional[str],
+        typer.Option(help="The path to the reordered build file to create."),
+    ] = None,
+) -> None:
+    """Reorder a Jenga build file by a Jenga build order file.
+
+    Parameters
+    ----------
+    build_file_path : str
+        The path to the Jenga build file.
+    build_order_file_path : str
+        The path to the Jenga build order file.
+    reordered_build_file_path : str, optional
+        The path to the output reordered build file. If not provided, a file
+        name of the pattern reordered_<build_file_name> will be created.
+
+    """
+    reorder_bfile_by_border_file(
+        build_file_path,
+        build_order_file_path,
+        reordered_build_file_path,
     )
-    weidu_log_to_build_file(weidu_log_path, build_file_path)
+
+
+@app.command()
+def print_configuration() -> None:
+    """Print the configuration."""
+    print_config_info_box()
 
 
 def cli():

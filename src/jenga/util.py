@@ -1,56 +1,69 @@
 """Utility functions for jenga."""
 
-import json
-import re
-from typing import Dict
+# Standard library imports
+import os
+
+# local imports
+from .printing import jprint
 
 
-def weidu_log_to_build_file(input_file: str, output_file: str) -> None:
-    """Convert a WeiDU log file to a JSON build file.
+class ConfigurationError(Exception):
+    """Configuration error."""
+
+    pass
+
+
+def mirror_backslashes_in_file(
+    path: str,
+) -> None:
+    r"""Replace every \ in the input text file with an / character.
 
     Parameters
     ----------
-    input_file : str
-        The path to the input WeiDU log file.
-    output_file : str
-        The path to the output JSON build file.
+    path : str
+        The path to the input text file.
 
     """
-    # Dictionary to store mods information
-    mods_info: Dict = {}
+    with open(path, "rt", encoding="utf-8") as file:
+        text = file.read()
+    text = text.replace("\\", "/")
+    with open(path, "wt", encoding="utf-8") as file:
+        file.write(text)
 
-    # Read the input file
-    with open(input_file, "rt", encoding="utf-8") as file:
-        for line in file:
-            line = line.strip()
-            # Ignore comments
-            if line.startswith("//") or not line:
-                continue
 
-            # Parse the line using regular expressions
-            match = re.match(r"~([^/]+)/[^~]+~ #(\d+) #(\d+) // .+", line)
+def check_all_files_in_dir_are_writeable(path: str) -> None:
+    for root, dirs, files in os.walk(path):
+        # check perms for sub-directories
+        for momo in dirs:
+            if not os.access(os.path.join(root, momo), os.W_OK):
+                jprint(
+                    f"[red]Directory {os.path.join(root, momo)} "
+                    "is not writable."
+                )
+        # check perms for files
+        for momo in files:
+            if not os.access(os.path.join(root, momo), os.W_OK):
+                jprint(
+                    f"[red]File {os.path.join(root, momo)} is not writable."
+                )
 
-            if match:
-                mod_name = match.group(1)
-                language_int = match.group(2)
-                component_number = match.group(3)
 
-                if mod_name not in mods_info:
-                    mods_info[mod_name] = {
-                        "mod": mod_name,
-                        "language_int": language_int,
-                        "install_list": [],
-                    }
-
-                mods_info[mod_name]["install_list"].append(component_number)
-
-    # Convert install_list to a space-separated string
-    for mod in mods_info.values():
-        mod["install_list"] = " ".join(sorted(mod["install_list"], key=int))
-
-    # Create the final dictionary structure for JSON
-    result = {"mods": list(mods_info.values())}
-
-    # Write the output to a JSON file
-    with open(output_file, "wt+", encoding="utf-8") as json_file:
-        json.dump(result, json_file, indent=4)
+def make_all_files_in_dir_writable(path: str) -> None:
+    jprint(f"[green]Making all files in {path} writable...")
+    os.system(f'sudo chmod 777 "{path}"')
+    os.system(f'sudo chmod -R 777 "{path}"')
+    # permission = 0o777
+    # # Change permissions for the top-level folder
+    # os.chmod(path, permission)
+    #
+    # for root, dirs, files in os.walk(path):
+    #     # set perms on sub-directories
+    #     for momo in dirs:
+    #         os.chmod(os.path.join(root, momo), permission)
+    #         # os.chown(os.path.join(root, momo), permission, 20)
+    #
+    #     # set perms on files
+    #     for momo in files:
+    #         os.chmod(os.path.join(root, momo), permission)
+    #         # os.chown(os.path.join(root, momo), permission, 20)
+    check_all_files_in_dir_are_writeable(path)
