@@ -206,7 +206,7 @@ def get_fixes_for_mod(mod_name: str, prefix: bool) -> Sequence[JengaFix]:
 
     Returns
     -------
-    Sequece[JengaFix]
+    Sequence[JengaFix]
         A list of any fixes to apply before/after the specified mod.
 
     """

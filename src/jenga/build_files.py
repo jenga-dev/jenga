@@ -117,7 +117,7 @@ def build_file_to_build_order_file(
     build_file_type: Optional[str] = None,
     build_order_file_path: Optional[str] = None,
 ) -> None:
-    """Extracts mod build order and writes it to a text file.
+    """Extract mod build order and writes it to a text file.
 
     Parameters
     ----------
@@ -170,7 +170,7 @@ def reorder_build_file_by_build_order_file(
     build_order_file_path: str,
     reordered_build_file_path: Optional[str] = None,
 ) -> None:
-    """Reorders the mod portion of a build file by a build order file.
+    """Reorder the mod portion of a build file by a build order file.
 
     This method support the splitting of a mod install component into
     several ones.

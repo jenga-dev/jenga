@@ -9,14 +9,13 @@ import sys
 import warnings
 from datetime import datetime
 from enum import Enum
-from io import StringIO
 from typing import Dict, List, Optional, Tuple
 
 # Third-party imports
-from fuzzywuzzy import fuzz, process
 from rich.console import Console
 from rich.table import Table
 
+# Local imports
 from .config import (
     CFG,
     CfgKey,
@@ -29,10 +28,8 @@ from .fixes import (
 )
 
 # Local imports
-from .parsing import (
-    weidu_log_to_build_dict,
-)
 from .printing import (
+    rprint,
     OPER_CLR,
     fail_print,
     full_line_marker,
@@ -41,105 +38,20 @@ from .printing import (
     print_goodbye,
     sccs_print,
 )
-from .util import (
-    ConfigurationError,
-    make_all_files_in_dir_writable,
+from .weidu_util import (
+    get_mod_info_from_weidu_log,
+    update_weidu_conf,
 )
-
-
-def update_weidu_conf(game_dir: str, lang: str) -> None:
-    """Update or append the language setting in weidu.conf.
-
-    Parameters
-    ----------
-    game_dir : str
-        The directory where the game is installed.
-    lang : str
-        The lang dir to set in the configuration file. E.g. en_US, etc.
-
-    """
-    weidu_conf_path = os.path.join(game_dir, "weidu.conf")
-    lang_dir_line = f"lang_dir = {lang}\n"
-    oper_print(f"Setting {lang_dir_line[:-1]} in weidu.conf...")
-    # Read the original content of the configuration file
-    # If the weidu.conf does not exist, initialize with the new language line
-    if not os.path.exists(weidu_conf_path):
-        with open(weidu_conf_path, "w", encoding="utf-8") as f:
-            f.write(lang_dir_line)
-        return
-    with open(weidu_conf_path, "r", encoding="utf-8") as f:
-        lines = f.readlines()
-    # Check for existing lang_dir line
-    for i, line in enumerate(lines):
-        if line.startswith("lang_dir ="):
-            lines[i] = lang_dir_line
-            break
-    else:
-        # Append the line if not present
-        lines.append(lang_dir_line)
-    # Write back the content with the updated lang_dir line
-    with open(weidu_conf_path, "w", encoding="utf-8") as f:
-        f.writelines(lines)
-
-
-def fuzzy_find(directory: str, name: str, file_type: str = ".tp2") -> str:
-    """Fuzzy find the file matching the given name in directory.
-
-    Parameters
-    ----------
-    directory : str
-        The directory to search for the file.
-    name : str
-        The name of the file to search for.
-    file_type : str, optional
-        The file type to search for. Default is ".tp2".
-
-    Returns
-    -------
-    str
-        The path to the file found in the directory.
-
-    """
-    entries = [
-        entry
-        for entry in os.listdir(directory)
-        if entry.lower().endswith(file_type)
-    ]
-    result = process.extractOne(name.lower(), entries, scorer=fuzz.ratio)
-    if result is None:
-        raise FileNotFoundError(
-            f"Unable to locate {name}{file_type} in {directory}."
-        )
-    best_match, score = result
-    if score < 50:
-        if not name.startswith("setup-"):
-            setup_prefixed = f"setup-{name.lower()}"
-            return fuzzy_find(directory, setup_prefixed, file_type)
-        raise FileNotFoundError(
-            f"Unable to locate {name}{file_type} with "
-            "sufficient accuracy in {directory.}"
-        )
-    return os.path.join(directory, best_match)
-
-
-def get_mod_info_from_weidu_log(install_dir: str) -> dict:
-    """Get mod information from WeiDU log file.
-
-    Parameters
-    ----------
-    install_dir : str
-        The directory where the game is installed.
-
-    Returns
-    -------
-    dict
-        A dictionary containing the mod information.
-
-    """
-    weidu_log_path = os.path.join(install_dir, "weidu.log")
-    res = weidu_log_to_build_dict(weidu_log_path)
-    mod_list = res["mods"]
-    return {k["mod"]: k for k in mod_list}
+from .util import (
+    make_all_files_in_dir_writable,
+    fuzzy_find,
+    extract_mod_to_extracted_mods_dir,
+    ExtractionType,
+    safe_copy_dir_to_game_dir,
+    dir_name_from_dir_path,
+    tp2_fpath_from_mod_dpath,
+)
+from .errors import ConfigurationError
 
 
 class InstallationStatus(Enum):
@@ -358,7 +270,7 @@ def mod_is_installed_identically(
         The version of the mod.
     desired_components : list
         The list of installed components.
-    install_info : dict, optional
+    installed_mods_info : dict, optional
         The information about the mod installation.
         If not provided, returns False.
 
@@ -374,11 +286,11 @@ def mod_is_installed_identically(
         mod_installation = installed_mods_info[mod_name]
     except KeyError:
         return False
-    # print(
-    #     f"Comparing planned {mod_name} installation with version:\n"
-    #     f"{mod_version}\n and components:\n {desired_components}\n"
-    #     f" against install_info:\n {mod_installation}"
-    # )
+    print(
+        f"Comparing planned {mod_name} installation with version:\n"
+        f"{mod_version}\n and components:\n {desired_components}\n"
+        f" against install_info:\n {mod_installation}"
+    )
     installed_comp_list = _convert_components_dicts_list_to_lists_list(
         mod_installation["components"]
     )
@@ -474,7 +386,7 @@ def print_run_config_info_box(runcfg: dict, console: Console) -> None:
         f"{runcfg.get('state_file_path')}",
     )
 
-    table3 = Table(title="Run Configuraiton")
+    table3 = Table(title="Run Configuration")
     table3.add_column(justify="center", no_wrap=True)
     table3.add_row(table1)
     table3.add_row(table2)
@@ -483,6 +395,15 @@ def print_run_config_info_box(runcfg: dict, console: Console) -> None:
 
 
 def print_mod_info_box(mod: dict, console: Console) -> None:
+    """Print the mod information in a rich info box.
+
+    Parameters
+    ----------
+    mod : dict
+        The mod information.
+    console : Console
+        The rich console object.
+    """
     tcolor = OPER_CLR
     table = Table()
     table.add_column("Name", justify="center", style=tcolor, no_wrap=True)
@@ -680,13 +601,14 @@ def run_build(
         components = mod["components"]
         install_list = mod["install_list"]
         prompt_for_manual_install = mod.get("prompt_for_manual_install", False)
+        prefer_zipped_mods = mod.get("prefer_zipped_mods", False)
 
         if prompt_for_manual_install:
             user_input = "blah"
             while user_input not in ("m", "manual", "s", "skip", "f", "force"):
                 note_print(
                     f"Prompting for manual installation of {mod_name}. "
-                    "Press Enter or type 'm'/'manual' to save build state and "
+                    "Type 'm'/'manual' to save build state and "
                     "halt; type 's'/'skip' to skip this mod and continue; "
                     "type 'f'/'force' to attempt to install the mod anyway."
                 )
@@ -716,18 +638,85 @@ def run_build(
         if force_lang_in_weidu_conf:
             update_weidu_conf(game_install_dir, lang)
 
-        # Find the mod directory
-        mod_dir = fuzzy_find(extracted_mods_dir, mod_name, "")
-        # Copy the mod directory to the game directory
-        target_mod_dir = os.path.join(game_install_dir, mod_name)
-        make_all_files_in_dir_writable(target_mod_dir)
-        if os.path.exists(target_mod_dir):
-            shutil.rmtree(target_mod_dir)
-        oper_print(f"Copying {mod_dir} to {target_mod_dir}...")
-        shutil.copytree(mod_dir, target_mod_dir)
-        make_all_files_in_dir_writable(target_mod_dir)
-        # Find .tp2 file inside
-        mod_tp2_path = fuzzy_find(target_mod_dir, mod_name, ".tp2")
+        # Find the mod zipped archive, if available
+        mod_dir = None
+        target_mod_dir = None
+        mod_tp2_path = None
+        from_archive = False
+        if prefer_zipped_mods:
+            if not zipped_mods_dir:
+                msg = (
+                    "prefer_zipped_mods set to True, but no zipped mods "
+                    "directory provided in the configuration. The extracted "
+                    "mods directory will be used.")
+                warnings.warn(msg, stacklevel=2)
+                note_print(msg)
+            else:
+                mod_zip_path = fuzzy_find(
+                    zipped_mods_dir, mod_name, [".zip", "tar.gz", "rar"])
+                oper_print(
+                    f"Extracting {mod_zip_path} into {extracted_mods_dir}...")
+                make_all_files_in_dir_writable(extracted_mods_dir)
+                res = extract_mod_to_extracted_mods_dir(
+                    mod_zip_path, extracted_mods_dir, mod_name)
+                oper_print("Extraction results:")
+                rprint(res)
+                from_archive = True
+                mod_dir = res.mod_folder_path
+                mod_dir_name = dir_name_from_dir_path(mod_dir)
+                target_mod_dir = os.path.join(game_install_dir, mod_dir_name)
+                safe_copy_dir_to_game_dir(mod_dir, target_mod_dir)
+                ex_type = res.extraction_type
+                if ex_type in [
+                        ExtractionType.TYPE_A, ExtractionType.TYPE_B]:
+                    # in both cases we copy a single mod dir with the all
+                    # possible tp2 files insides of it, so guessting the
+                    # most appropriate tp2 file from it is enough
+                    mod_tp2_path = tp2_fpath_from_mod_dpath(mod_dir, mod_name)
+                elif ex_type == ExtractionType.TYPE_C:
+                    # in this case we have a single tp2 file in the root
+                    # of the extracted mod dir, so we have to copy it
+                    # separately into the game dir (and not the mod dir!)
+                    tp2_to_copy = res.tp2_file_path
+                    tp2_fanme = os.path.basename(tp2_to_copy)
+                    mod_tp2_path = os.path.join(game_install_dir, tp2_fanme)
+                    shutil.copy(tp2_to_copy, mod_tp2_path)
+                elif ex_type == ExtractionType.TYPE_E:
+                    # here we have more than one mod folders, but also tp2
+                    # file/s directly in the unpacked archive itself, so the
+                    # unpacked archive was treated as a single mode dir, and
+                    # we can guess the tp2 file from it
+                    mod_tp2_path = tp2_fpath_from_mod_dpath(mod_dir, mod_name)
+                elif ex_type == ExtractionType.TYPE_D:
+                    # here we have more than one mod folder, but no tp2 files
+                    # in the root of the unpacked archive, so we have to copy
+                    # additional mod folders
+                    mod_tp2_path = tp2_fpath_from_mod_dpath(mod_dir, mod_name)
+                    for mod_folder in res.additional_mod_folder_paths:
+                        mod_folder_name = dir_name_from_dir_path(mod_folder)
+                        target_mod_folder = os.path.join(
+                            game_install_dir, mod_folder_name)
+                        safe_copy_dir_to_game_dir(
+                            mod_folder, target_mod_folder)
+
+        if not from_archive:
+            # Find the mod directory
+            mod_dir = fuzzy_find(extracted_mods_dir, mod_name)
+            # Copy the mod directory to the game directory
+            target_mod_dir = os.path.join(game_install_dir, mod_name)
+            safe_copy_dir_to_game_dir(mod_dir, target_mod_dir)
+            # Find .tp2 file inside
+            mod_tp2_path = fuzzy_find(
+                target_mod_dir, mod_name, [".tp2"], setup_file_search=True)
+
+        if target_mod_dir is None or mod_tp2_path is None:
+            fail_print(
+                f"Could not find the mod directory or the .tp2 file for "
+                f"{mod_name}. Terminating the build process."
+            )
+            write_ongoing_state(build_name, i-1, new_state_file_path)
+            note_print(f"Build state saved to {new_state_file_path}")
+            sys.exit(1)
 
         # Apply any pre-fixes for the mod
         oper_print(f"Looking for pre-fixes for {mod_name}...")
@@ -761,7 +750,7 @@ def run_build(
                 f"[{OPER_CLR}]{mod_name}[/{OPER_CLR}] failed. "
                 "Terminating the build process."
             )
-            write_ongoing_state(build_name, i, new_state_file_path)
+            write_ongoing_state(build_name, i-1, new_state_file_path)
             note_print(f"Build state saved to {new_state_file_path}")
             sys.exit(1)
         elif status == InstallationStatus.WARNINGS:
