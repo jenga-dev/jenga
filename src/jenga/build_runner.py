@@ -23,35 +23,35 @@ from .config import (
     get_game_dir,
     print_config_info_box,
 )
+from .errors import ConfigurationError
 from .fixes import (
     get_fixes_for_mod,
 )
 
 # Local imports
 from .printing import (
-    rprint,
     OPER_CLR,
     fail_print,
     full_line_marker,
     note_print,
     oper_print,
     print_goodbye,
+    rprint,
     sccs_print,
+)
+from .util import (
+    ExtractionType,
+    dir_name_from_dir_path,
+    extract_mod_to_extracted_mods_dir,
+    fuzzy_find,
+    make_all_files_in_dir_writable,
+    safe_copy_dir_to_game_dir,
+    tp2_fpath_from_mod_dpath,
 )
 from .weidu_util import (
     get_mod_info_from_weidu_log,
     update_weidu_conf,
 )
-from .util import (
-    make_all_files_in_dir_writable,
-    fuzzy_find,
-    extract_mod_to_extracted_mods_dir,
-    ExtractionType,
-    safe_copy_dir_to_game_dir,
-    dir_name_from_dir_path,
-    tp2_fpath_from_mod_dpath,
-)
-from .errors import ConfigurationError
 
 
 class InstallationStatus(Enum):
@@ -403,6 +403,7 @@ def print_mod_info_box(mod: dict, console: Console) -> None:
         The mod information.
     console : Console
         The rich console object.
+
     """
     tcolor = OPER_CLR
     table = Table()
@@ -648,17 +649,21 @@ def run_build(
                 msg = (
                     "prefer_zipped_mods set to True, but no zipped mods "
                     "directory provided in the configuration. The extracted "
-                    "mods directory will be used.")
+                    "mods directory will be used."
+                )
                 warnings.warn(msg, stacklevel=2)
                 note_print(msg)
             else:
                 mod_zip_path = fuzzy_find(
-                    zipped_mods_dir, mod_name, [".zip", "tar.gz", "rar"])
+                    zipped_mods_dir, mod_name, [".zip", "tar.gz", "rar"]
+                )
                 oper_print(
-                    f"Extracting {mod_zip_path} into {extracted_mods_dir}...")
+                    f"Extracting {mod_zip_path} into {extracted_mods_dir}..."
+                )
                 make_all_files_in_dir_writable(extracted_mods_dir)
                 res = extract_mod_to_extracted_mods_dir(
-                    mod_zip_path, extracted_mods_dir, mod_name)
+                    mod_zip_path, extracted_mods_dir, mod_name
+                )
                 oper_print("Extraction results:")
                 rprint(res)
                 from_archive = True
@@ -667,8 +672,7 @@ def run_build(
                 target_mod_dir = os.path.join(game_install_dir, mod_dir_name)
                 safe_copy_dir_to_game_dir(mod_dir, target_mod_dir)
                 ex_type = res.extraction_type
-                if ex_type in [
-                        ExtractionType.TYPE_A, ExtractionType.TYPE_B]:
+                if ex_type in [ExtractionType.TYPE_A, ExtractionType.TYPE_B]:
                     # in both cases we copy a single mod dir with the all
                     # possible tp2 files insides of it, so guessting the
                     # most appropriate tp2 file from it is enough
@@ -695,9 +699,11 @@ def run_build(
                     for mod_folder in res.additional_mod_folder_paths:
                         mod_folder_name = dir_name_from_dir_path(mod_folder)
                         target_mod_folder = os.path.join(
-                            game_install_dir, mod_folder_name)
+                            game_install_dir, mod_folder_name
+                        )
                         safe_copy_dir_to_game_dir(
-                            mod_folder, target_mod_folder)
+                            mod_folder, target_mod_folder
+                        )
 
         if not from_archive:
             # Find the mod directory
@@ -707,14 +713,15 @@ def run_build(
             safe_copy_dir_to_game_dir(mod_dir, target_mod_dir)
             # Find .tp2 file inside
             mod_tp2_path = fuzzy_find(
-                target_mod_dir, mod_name, [".tp2"], setup_file_search=True)
+                target_mod_dir, mod_name, [".tp2"], setup_file_search=True
+            )
 
         if target_mod_dir is None or mod_tp2_path is None:
             fail_print(
                 f"Could not find the mod directory or the .tp2 file for "
                 f"{mod_name}. Terminating the build process."
             )
-            write_ongoing_state(build_name, i-1, new_state_file_path)
+            write_ongoing_state(build_name, i - 1, new_state_file_path)
             note_print(f"Build state saved to {new_state_file_path}")
             sys.exit(1)
 
@@ -750,7 +757,7 @@ def run_build(
                 f"[{OPER_CLR}]{mod_name}[/{OPER_CLR}] failed. "
                 "Terminating the build process."
             )
-            write_ongoing_state(build_name, i-1, new_state_file_path)
+            write_ongoing_state(build_name, i - 1, new_state_file_path)
             note_print(f"Build state saved to {new_state_file_path}")
             sys.exit(1)
         elif status == InstallationStatus.WARNINGS:

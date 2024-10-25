@@ -4,22 +4,23 @@
 import os
 import shutil
 import tempfile
-from enum import Enum
 from dataclasses import dataclass
-from typing import Optional, List, Tuple
+from enum import Enum
+from typing import List, Optional, Tuple
 
 # Third-party imports
 import patoolib
 from thefuzz import fuzz, process
+
+from .errors import (
+    IllformedModArchiveError,
+)
 
 # local imports
 from .printing import (
     jprint,
     note_print,
     oper_print,
-)
-from .errors import (
-    IllformedModArchiveError,
 )
 
 
@@ -103,29 +104,30 @@ def fuzzy_find(
     -------
     str
         The path to the file found in the directory.
+
     """
     if file_types is None:
         _is_valid_entry = lambda entry: True
     else:
         kfile_types = file_types
+
         def _is_valid_entry(entry: str) -> bool:
             lower_entry = entry.lower()
             return any(
-                lower_entry.endswith(file_type)
-                for file_type in kfile_types)
+                lower_entry.endswith(file_type) for file_type in kfile_types
+            )
+
     entries = [
-        entry
-        for entry in os.listdir(directory)
-        if _is_valid_entry(entry)
+        entry for entry in os.listdir(directory) if _is_valid_entry(entry)
     ]
     result = process.extractOne(name.lower(), entries, scorer=fuzz.ratio)
     if result is None:
         if file_types:
             ftstr = "/".join(file_types)
             raise FileNotFoundError(
-                f"Unable to locate {name}.{ftstr} in {directory}.")
-        raise FileNotFoundError(
-            f"Unable to locate {name}.* in {directory}.")
+                f"Unable to locate {name}.{ftstr} in {directory}."
+            )
+        raise FileNotFoundError(f"Unable to locate {name}.* in {directory}.")
     best_match, score = result
     if score < 50:
         if setup_file_search and not name.startswith("setup-"):
@@ -135,10 +137,12 @@ def fuzzy_find(
             ftstr = "/".join(file_types)
             raise FileNotFoundError(
                 f"Unable to locate {name}.{ftstr} in {directory}. with "
-                "sufficient accuracy.")
+                "sufficient accuracy."
+            )
         raise FileNotFoundError(
             f"Unable to locate {name}.* in {directory} with sufficient "
-            "accuracy.")
+            "accuracy."
+        )
     return os.path.join(directory, best_match)
 
 
@@ -160,8 +164,7 @@ class ExtractionResult:
 
 
 def _get_tp2_fpaths(
-    mod_temp_dpath: str, mod_dpath: str, mod_name: str,
-    tp2_fnames: List[str]
+    mod_temp_dpath: str, mod_dpath: str, mod_name: str, tp2_fnames: List[str]
 ) -> Tuple[str, str, List[str], List[str]]:
     """Guess the main .tp2 file paths from the mod folder.
 
@@ -180,36 +183,35 @@ def _get_tp2_fpaths(
     -------
     Tuple[str, str, List[str], List[str]]
         A tuple containing the temporary and final .tp2 file paths.
+
     """
     # select the most closely named .tp2 file in the primary mod folder
     mod_tp2_fnames = [
-        f for f in os.listdir(mod_temp_dpath)
-        if f.endswith('.tp2')
+        f for f in os.listdir(mod_temp_dpath) if f.endswith(".tp2")
     ]
     res = process.extractOne(mod_name, mod_tp2_fnames)
     if res is not None:
         tp2_temp_fpath = os.path.join(mod_temp_dpath, res[0])
         tp2_fpath = os.path.join(mod_dpath, res[0])
     else:
-        tp2_temp_fpath = os.path.join(
-            mod_temp_dpath, mod_tp2_fnames[0])
-        tp2_fpath = os.path.join(
-            mod_dpath, mod_tp2_fnames[0])
+        tp2_temp_fpath = os.path.join(mod_temp_dpath, mod_tp2_fnames[0])
+        tp2_fpath = os.path.join(mod_dpath, mod_tp2_fnames[0])
     additional_tp2_temp_fpaths = [
-        os.path.join(mod_temp_dpath, f) for f in tp2_fnames]
-    additional_tp2_fpaths = [
-        os.path.join(mod_dpath, f) for f in tp2_fnames]
+        os.path.join(mod_temp_dpath, f) for f in tp2_fnames
+    ]
+    additional_tp2_fpaths = [os.path.join(mod_dpath, f) for f in tp2_fnames]
     additional_tp2_temp_fpaths.remove(tp2_temp_fpath)
     additional_tp2_fpaths.remove(tp2_fpath)
     return (
-        tp2_temp_fpath, tp2_fpath, additional_tp2_temp_fpaths,
-        additional_tp2_fpaths)
+        tp2_temp_fpath,
+        tp2_fpath,
+        additional_tp2_temp_fpaths,
+        additional_tp2_fpaths,
+    )
 
 
 def extract_mod_to_extracted_mods_dir(
-    mods_archives_dir_path: str,
-    extracted_mods_dir_path: str,
-    mod_name: str
+    mods_archives_dir_path: str, extracted_mods_dir_path: str, mod_name: str
 ) -> ExtractionResult:
     """Extract a mod to the extracted mods directory.
 
@@ -263,6 +265,7 @@ def extract_mod_to_extracted_mods_dir(
     the path to the .tp2 file, and a list of any additional newly created mod
     folders (for case D). In case D, the path to the mod folder named most
     closely resembling the mod name is chosen as the main path returned, and
+
     """
     # Step 1: Find the best match for the mod archive using fuzzy matching
     archives = os.listdir(mods_archives_dir_path)
@@ -270,7 +273,8 @@ def extract_mod_to_extracted_mods_dir(
     if res is None:
         raise FileNotFoundError(
             f"Unable to locate archive for mod '{mod_name}' in "
-            f"directory '{mods_archives_dir_path}'")
+            f"directory '{mods_archives_dir_path}'"
+        )
     archive_fname = res[0]
     oper_print(f"Best match for archive of mod '{mod_name}': {archive_fname}")
     archive_fpath = os.path.join(mods_archives_dir_path, archive_fname)
@@ -282,16 +286,19 @@ def extract_mod_to_extracted_mods_dir(
     res = process.extractOne(mod_name, extracted_mods)
     if res is None:
         raise FileNotFoundError(
-            f"Unable to locate existing mod folder for mod '{mod_name}'")
+            f"Unable to locate existing mod folder for mod '{mod_name}'"
+        )
     best_folder_match = res[0]
     existing_mod_folder_path = os.path.join(
-        extracted_mods_dir_path, best_folder_match)
+        extracted_mods_dir_path, best_folder_match
+    )
 
     # Step 3: Prompt user for deletion
     if os.path.exists(existing_mod_folder_path):
         response = input(
-            f"Delete existing mod folder '{best_folder_match}'? (y/n): ")
-        if response.lower() in ['y', 'yes']:
+            f"Delete existing mod folder '{best_folder_match}'? (y/n): "
+        )
+        if response.lower() in ["y", "yes"]:
             shutil.rmtree(existing_mod_folder_path)
 
     # Step 4: Extract the archive
@@ -301,9 +308,11 @@ def extract_mod_to_extracted_mods_dir(
     # Step 5: Identify mod structure and handle accordingly
     archive_file_and_dir_names = os.listdir(temp_dir)
     archive_tp2_fnames = [
-        f for f in archive_file_and_dir_names if f.endswith('.tp2')]
+        f for f in archive_file_and_dir_names if f.endswith(".tp2")
+    ]
     archive_dnames = [
-        f for f in archive_file_and_dir_names
+        f
+        for f in archive_file_and_dir_names
         if os.path.isdir(os.path.join(temp_dir, f))
     ]
     mod_structure_type = None
@@ -320,16 +329,17 @@ def extract_mod_to_extracted_mods_dir(
         # we have a single folder in the archive...
         mod_dname = archive_dnames[0]
         mod_dpath = os.path.join(temp_dir, mod_dname)
-        tp2_fnames = [
-            f for f in os.listdir(mod_dpath) if f.endswith('.tp2')]
+        tp2_fnames = [f for f in os.listdir(mod_dpath) if f.endswith(".tp2")]
         if len(tp2_fnames) > 0:
             # ... and it contains at least one .tp2 file!
             mod_structure_type = ExtractionType.TYPE_A
             primary_mod_temp_dpath = mod_dpath
             primary_mod_dpath = os.path.join(
-                extracted_mods_dir_path, mod_dname)
-            res = _get_tp2_fpaths(primary_mod_temp_dpath,
-                                  primary_mod_dpath, mod_name, tp2_fnames)
+                extracted_mods_dir_path, mod_dname
+            )
+            res = _get_tp2_fpaths(
+                primary_mod_temp_dpath, primary_mod_dpath, mod_name, tp2_fnames
+            )
             tp2_temp_fpath, tp2_fpath = res[:2]
             additional_tp2_temp_fpaths = res[2]
             additional_tp2_fpaths = res[3]
@@ -341,18 +351,23 @@ def extract_mod_to_extracted_mods_dir(
                 mod_structure_type = ExtractionType.TYPE_C
                 primary_mod_temp_dpath = mod_dpath
                 primary_mod_dpath = os.path.join(
-                    extracted_mods_dir_path, mod_dname)
+                    extracted_mods_dir_path, mod_dname
+                )
                 res = _get_tp2_fpaths(
-                    temp_dir, extracted_mods_dir_path, mod_name,
-                    archive_tp2_fnames)
+                    temp_dir,
+                    extracted_mods_dir_path,
+                    mod_name,
+                    archive_tp2_fnames,
+                )
                 tp2_temp_fpath, tp2_fpath = res[:2]
                 additional_tp2_temp_fpaths = res[2]
                 additional_tp2_fpaths = res[3]
             else:
                 # no .tp2 files in the unarchived dir either :(
                 raise IllformedModArchiveError(
-                    f"Unable to locate .tp2 file in unarchived mod folder "
-                    "'{mod_dname}'")
+                    "Unable to locate .tp2 file in unarchived mod folder "
+                    "'{mod_dname}'"
+                )
     elif len(archive_dnames) == 0:
         # we have no folders in the archive...
         if len(archive_tp2_fnames) > 0:
@@ -360,18 +375,20 @@ def extract_mod_to_extracted_mods_dir(
             mod_structure_type = ExtractionType.TYPE_B
             primary_mod_temp_dpath = temp_dir
             primary_mod_dpath = os.path.join(
-                extracted_mods_dir_path, archive_fname_no_ext)
+                extracted_mods_dir_path, archive_fname_no_ext
+            )
             res = _get_tp2_fpaths(
-                temp_dir, primary_mod_dpath, mod_name,
-                archive_tp2_fnames)
+                temp_dir, primary_mod_dpath, mod_name, archive_tp2_fnames
+            )
             tp2_temp_fpath, tp2_fpath = res[:2]
             additional_tp2_temp_fpaths = res[2]
             additional_tp2_fpaths = res[3]
         else:
             # ... and no .tp2 files directly in the unarchived dir :(
             raise IllformedModArchiveError(
-                f"Unable to locate any folders or .tp2 files in unarchived "
-                "mod archive '{archive_fpath}'")
+                "Unable to locate any folders or .tp2 files in unarchived "
+                "mod archive '{archive_fpath}'"
+            )
     else:
         # we have more than one folder in the archive...
         if len(archive_tp2_fnames) > 0:
@@ -379,10 +396,11 @@ def extract_mod_to_extracted_mods_dir(
             mod_structure_type = ExtractionType.TYPE_E
             primary_mod_temp_dpath = temp_dir
             primary_mod_dpath = os.path.join(
-                extracted_mods_dir_path, archive_fname_no_ext)
+                extracted_mods_dir_path, archive_fname_no_ext
+            )
             res = _get_tp2_fpaths(
-                temp_dir, primary_mod_dpath, mod_name,
-                archive_tp2_fnames)
+                temp_dir, primary_mod_dpath, mod_name, archive_tp2_fnames
+            )
             tp2_temp_fpath, tp2_fpath = res[:2]
             additional_tp2_temp_fpaths = res[2]
             additional_tp2_fpaths = res[3]
@@ -390,41 +408,52 @@ def extract_mod_to_extracted_mods_dir(
             # ... and no tp2 files directly in the unarchived dir
             mod_structure_type = ExtractionType.TYPE_D
             mod_folder_candidates = [
-                f for f in archive_dnames
-                if any(f.endswith('.tp2')
-                for f in os.listdir(os.path.join(temp_dir, f)))
+                f
+                for f in archive_dnames
+                if any(
+                    f.endswith(".tp2")
+                    for f in os.listdir(os.path.join(temp_dir, f))
+                )
             ]
             if len(mod_folder_candidates) == 0:
                 # and also no .tp2 files in any of the folders :(
                 raise IllformedModArchiveError(
                     f"Unable to locate any mod folders with .tp2 files in "
-                    f"unarchived mod archive '{archive_fpath}'")
+                    f"unarchived mod archive '{archive_fpath}'"
+                )
             # out of all folders containing a tp2 file, pick the folder most
             # closely named to mod_name as the primary mod
             res = process.extractOne(mod_name, mod_folder_candidates)
             if res is None:
                 primary_mod_dname = mod_folder_candidates.pop(0)
                 additional_mod_dnames = [
-                    f for f in archive_dnames if f != primary_mod_dname]
+                    f for f in archive_dnames if f != primary_mod_dname
+                ]
             else:
                 primary_mod_dname = res[0]
                 additional_mod_dnames = [
-                    f for f in archive_dnames if f != primary_mod_dname]
+                    f for f in archive_dnames if f != primary_mod_dname
+                ]
             primary_mod_temp_dpath = os.path.join(temp_dir, primary_mod_dname)
             primary_mod_dpath = os.path.join(
-                extracted_mods_dir_path, primary_mod_dname)
+                extracted_mods_dir_path, primary_mod_dname
+            )
             additional_mod_temp_dpaths = [
-                os.path.join(temp_dir, f) for f in additional_mod_dnames]
+                os.path.join(temp_dir, f) for f in additional_mod_dnames
+            ]
             additional_mod_dpaths = [
                 os.path.join(extracted_mods_dir_path, f)
-                for f in additional_mod_dnames]
+                for f in additional_mod_dnames
+            ]
             # select the most closely named .tp2 file in the primary mod folder
             tp2_fnames = [
-                f for f in os.listdir(primary_mod_temp_dpath)
-                if f.endswith('.tp2')
+                f
+                for f in os.listdir(primary_mod_temp_dpath)
+                if f.endswith(".tp2")
             ]
-            res = _get_tp2_fpaths(primary_mod_temp_dpath,
-                                  primary_mod_dpath, mod_name, tp2_fnames)
+            res = _get_tp2_fpaths(
+                primary_mod_temp_dpath, primary_mod_dpath, mod_name, tp2_fnames
+            )
             tp2_temp_fpath, tp2_fpath = res[:2]
             additional_tp2_temp_fpaths = res[2]
             additional_tp2_fpaths = res[3]
@@ -437,7 +466,8 @@ def extract_mod_to_extracted_mods_dir(
     shutil.copytree(primary_mod_temp_dpath, primary_mod_dpath)
     # 6.2: Copy additional mod folders
     for temp_dpath, dpath in zip(
-            additional_mod_temp_dpaths, additional_mod_dpaths):
+        additional_mod_temp_dpaths, additional_mod_dpaths
+    ):
         if os.path.exists(dpath):
             make_all_files_in_dir_writable(dpath)
             shutil.rmtree(dpath)
@@ -448,7 +478,8 @@ def extract_mod_to_extracted_mods_dir(
     shutil.copy(tp2_temp_fpath, tp2_fpath)
     # 6.4: Copy additional .tp2 files
     for temp_fpath, fpath in zip(
-            additional_tp2_temp_fpaths, additional_tp2_fpaths):
+        additional_tp2_temp_fpaths, additional_tp2_fpaths
+    ):
         if os.path.exists(fpath):
             os.remove(fpath)
         shutil.copy(temp_fpath, fpath)
@@ -503,8 +534,7 @@ def dir_name_from_dir_path(dir_path: str) -> str:
     return os.path.basename(os.path.normpath(dir_path))
 
 
-def tp2_fpath_from_mod_dpath(
-    mod_dpath: str, mod_name: str) -> str:
+def tp2_fpath_from_mod_dpath(mod_dpath: str, mod_name: str) -> str:
     """Get the path to the best matching .tp2 file from the mod directory path.
 
     Parameters
@@ -518,6 +548,6 @@ def tp2_fpath_from_mod_dpath(
     -------
     str
         The path to the best matching .tp2 file.
+
     """
-    return fuzzy_find(
-        mod_dpath, mod_name, [".tp2"], setup_file_search=True)
+    return fuzzy_find(mod_dpath, mod_name, [".tp2"], setup_file_search=True)

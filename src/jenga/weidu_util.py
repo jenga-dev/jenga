@@ -3,11 +3,12 @@
 # Standard library imports
 import os
 
-# local imports
-from .printing import oper_print
 from .parsing import (
     weidu_log_to_build_dict,
 )
+
+# local imports
+from .printing import oper_print
 
 
 def update_weidu_conf(game_dir: str, lang: str) -> None:
