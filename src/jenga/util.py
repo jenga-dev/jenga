@@ -6,12 +6,16 @@ import shutil
 import tempfile
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, Tuple, Dict
+from typing import Dict, List, Optional, Tuple
 
 # Third-party imports
 import patoolib
 from thefuzz import fuzz, process
 
+from .config import (
+    EXTRACTED_MOD_CACHE_DIR_PATH,
+    ZIPPED_MOD_CACHE_DIR_PATH,
+)
 from .errors import (
     IllformedModArchiveError,
 )
@@ -25,10 +29,6 @@ from .printing import (
     note_print,
     oper_print,
     sccs_print,
-)
-from .config import (
-    ZIPPED_MOD_CACHE_DIR_PATH,
-    EXTRACTED_MOD_CACHE_DIR_PATH,
 )
 
 
@@ -128,6 +128,7 @@ def fuzzy_find(
         The path to the best matching file/folder found in the directory.
     score
         The score of the match.
+
     """
     if file_types is None:
         _is_valid_entry = lambda entry: True
@@ -189,7 +190,8 @@ def fuzzy_find_file_or_dir(
             return os.path.join(directory, candidates[0])
         low_candidates = [cand.lower() for cand in candidates]
         result = process.extractOne(
-            name.lower(), low_candidates, scorer=fuzz.ratio)
+            name.lower(), low_candidates, scorer=fuzz.ratio
+        )
         if result is not None:
             best_match = candidates[low_candidates.index(result[0])]
             best_score = result[1]
@@ -251,9 +253,7 @@ def tp2_fpath_from_mod_dpath(mod_dpath: str, mod_name: str) -> str:
         The path to the best matching .tp2 file.
 
     """
-    return fuzzy_find_file_or_dir(
-        mod_dpath, mod_name, setup_file_search=True
-    )
+    return fuzzy_find_file_or_dir(mod_dpath, mod_name, setup_file_search=True)
 
 
 class ExtractionType(Enum):
@@ -424,7 +424,8 @@ def extract_archive_to_extracted_mods_dir(
     if mod_name is None:
         raise IllformedModArchiveError(
             "Unable to infer mod name from .tp2 file in unarchived "
-            f"mod archive '{temp_dir}'")
+            f"mod archive '{temp_dir}'"
+        )
 
     # Step 5: Identify mod structure and handle accordingly
     files_and_folders_in_temp = os.listdir(temp_dir)
@@ -658,7 +659,8 @@ def extract_archive_to_extracted_mods_dir(
         if verbose:
             sccs_print(
                 f"Additional .tp2 file '{fpath}' copied to "
-                f"'{extracted_mods_dir_path}'.")
+                f"'{extracted_mods_dir_path}'."
+            )
     # 6.5: Copy additional files
     for temp_fpath, fpath in zip(additional_temp_fpaths, additional_fpaths):
         if os.path.exists(fpath):
@@ -667,7 +669,8 @@ def extract_archive_to_extracted_mods_dir(
         if verbose:
             sccs_print(
                 f"Additional file '{fpath}' copied to "
-                f"'{extracted_mods_dir_path}'.")
+                f"'{extracted_mods_dir_path}'."
+            )
 
     # Step 7: Clean up temporary directory
     shutil.rmtree(temp_dir)
@@ -745,7 +748,9 @@ def extract_mod_to_extracted_mods_dir(
         "{zipped_mods_dpath}..."
     )
     archive_fpath = fuzzy_find_file_or_dir(
-        zipped_mods_dpath, mod_name, archive_search=True,
+        zipped_mods_dpath,
+        mod_name,
+        archive_search=True,
     )
     archive_fname = os.path.basename(archive_fpath)
     oper_print(f"Best match for archive of mod '{mod_name}': {archive_fname}")
@@ -774,7 +779,8 @@ def extract_mod_to_extracted_mods_dir(
         # Step 3: Prompt user for deletion
         if os.path.exists(existing_mod_folder_path):
             note_print(
-                f"Delete existing mod folder '{best_folder_match}'? (y/n): ")
+                f"Delete existing mod folder '{best_folder_match}'? (y/n): "
+            )
             response = input()
             if response.lower() in ["y", "yes"]:
                 shutil.rmtree(existing_mod_folder_path)
@@ -802,25 +808,28 @@ def extract_all_zipped_mods_in_dir_to_dir(
     SUPPORTED_EXT = [".zip", ".tar.gz", ".rar"]
     dir_items = os.listdir(zip_mods_dpath)
     archives = [
-        item for item in dir_items
+        item
+        for item in dir_items
         if any(item.endswith(ext) for ext in SUPPORTED_EXT)
     ]
     for archive in archives:
         archive_file_path = os.path.join(zip_mods_dpath, archive)
         oper_print(f"Extracting {archive}...")
         extract_archive_to_extracted_mods_dir(
-            archive_file_path, extracted_mods_dpath, mod_name=None)
+            archive_file_path, extracted_mods_dpath, mod_name=None
+        )
         oper_print(f"Finished extracting {archive}.")
 
 
-def extract_all_archives_in_zipped_mods_dir_to_extracted_mods_dir(
-) -> None:
+def extract_all_archives_in_zipped_mods_dir_to_extracted_mods_dir() -> None:
     """Extract all archives in the zipped mods dir to the extracted dir."""
     oper_print(
         f"Extracting all archives in '{zipped_mods_dpath}' to "
         f"'{extracted_mods_dpath}'..."
     )
-    extract_all_zipped_mods_in_dir_to_dir(zipped_mods_dpath, extracted_mods_dpath)
+    extract_all_zipped_mods_in_dir_to_dir(
+        zipped_mods_dpath, extracted_mods_dpath
+    )
     oper_print(
         f"Finished extracting all archives in '{zipped_mods_dpath}' to "
         f"'{extracted_mods_dpath}'."

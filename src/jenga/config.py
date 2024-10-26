@@ -3,7 +3,7 @@
 # stdlib imports
 import os
 from enum import Enum
-from typing import Optional, Any
+from typing import Any, Optional
 
 # 3rd party imports
 import birch
@@ -135,7 +135,6 @@ def get_game_dir(game_alias: Optional[str] = None) -> str | None:
     return _GAME_ALIAS_TO_DIR_PATH.get(game_alias.lower())
 
 
-
 class DirPathCheckResult(Enum):
     IS_NONE = 1
     DOES_NOT_EXIST = 2
@@ -155,6 +154,7 @@ def check_valid_dir_path(dir_path: Any[str, None]) -> DirPathCheckResult:
     -------
     DirPathCheckResult
         The result of the directory path check.
+
     """
     if dir_path is None:
         return DirPathCheckResult.IS_NONE

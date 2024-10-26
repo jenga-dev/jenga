@@ -28,6 +28,9 @@ from .fixes import (
     get_cmd_fixes_for_mod,
     get_prepost_fixes_for_mod,
 )
+from .mod_index import (
+    get_mod_info,
+)
 from .parsing import (
     UNVERSIONED_MOD_MARKER,
 )
@@ -53,9 +56,6 @@ from .util import (
 from .weidu_util import (
     get_mod_info_from_weidu_log,
     update_weidu_conf,
-)
-from .mod_index import (
-    get_mod_info,
 )
 
 
@@ -687,7 +687,8 @@ def run_build(
                 target_mod_dir = os.path.join(game_install_dir, mod_dir_name)
                 safe_copy_dir_to_game_dir(mod_dir, target_mod_dir)
                 mod_tp2_path = tp2_fpath_from_mod_dpath(
-                    target_mod_dir, mod_name)
+                    target_mod_dir, mod_name
+                )
                 oper_print(
                     f"Found mod {mod_name} in the mod index. "
                     f"Extracted mod directory: {target_mod_dir}"
@@ -770,13 +771,15 @@ def run_build(
         if not from_mod_index and not from_archive:
             # Find the mod directory
             mod_dir = fuzzy_find_file_or_dir(
-                extracted_mods_dir, mod_name, dir_search=True)
+                extracted_mods_dir, mod_name, dir_search=True
+            )
             # Copy the mod directory to the game directory
             target_mod_dir = os.path.join(game_install_dir, mod_name)
             safe_copy_dir_to_game_dir(mod_dir, target_mod_dir)
             # Find .tp2 file inside
             mod_tp2_path = fuzzy_find_file_or_dir(
-                target_mod_dir, mod_name, setup_file_search=True)
+                target_mod_dir, mod_name, setup_file_search=True
+            )
 
         if target_mod_dir is None or mod_tp2_path is None:
             fail_print(
