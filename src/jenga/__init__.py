@@ -12,11 +12,12 @@ from .build_runner import (
 )
 from .config import (
     print_config_info_box,
+    overwrite_game_dir_with_source_dir,
 )
 from .mod_index import (
     populate_mod_index_from_extracted_mods_dir,
 )
-from .util import (
+from .fs_util import (
     extract_all_archives_in_zipped_mods_dir_to_extracted_mods_dir,
 )
 
@@ -28,6 +29,7 @@ __all__ = [  # noqa: F405
     "build_file_to_build_order_file",
     "reorder_build_file_by_build_order_file",
     "print_config_info_box",
-    "extract_all_archives_in_zipped_mods_dir_to_extracted_mods_dir",
+    "overwrite_game_dir_with_source_dir",
     "populate_mod_index_from_extracted_mods_dir",
+    "extract_all_archives_in_zipped_mods_dir_to_extracted_mods_dir",
 ]

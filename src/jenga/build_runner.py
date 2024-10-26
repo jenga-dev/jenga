@@ -19,7 +19,7 @@ from rich.table import Table
 from .config import (
     CFG,
     CfgKey,
-    get_all_game_dirs,
+    get_all_target_game_dirs,
     get_game_dir,
     print_config_info_box,
 )
@@ -44,7 +44,7 @@ from .printing import (
     rprint,
     sccs_print,
 )
-from .util import (
+from .fs_util import (
     ExtractionType,
     dir_name_from_dir_path,
     extract_mod_to_extracted_mods_dir,
@@ -351,16 +351,16 @@ def _resolve_game_dir(
     """
     if game_install_dir is not None:
         return game_install_dir
-    # attempt to extract the game directory from the Jenga config.
-    dir_from_conf = get_game_dir(game)
+    # attempt to extract the target game directory from the Jenga config.
+    dir_from_conf = get_game_dir(game, CfgKey.TARGET)
     if dir_from_conf is not None:
         return dir_from_conf
-    game_dirs = get_all_game_dirs()
+    game_dirs = get_all_target_game_dirs()
     if not len(game_dirs) == 1:
         raise ValueError(
-            "A path to the game directory to mod must be provided "
+            "A path to the target game directory to mod must be provided "
             "explicitly if the game to mod is not configured in the build file"
-            ", and there is not exactly one game directory path "
+            ", and there is not exactly one target game directory path "
             "in your Jenga configuration."
         )
     lonely_path = game_dirs[0]

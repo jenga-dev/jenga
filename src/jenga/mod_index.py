@@ -9,7 +9,7 @@ from typing import Dict, Optional
 from .config import demand_extracted_mod_cache_dir_path
 
 # local imports
-from .util import get_tp2_names_and_paths
+from .fs_util import get_tp2_names_and_paths
 
 
 @dataclass

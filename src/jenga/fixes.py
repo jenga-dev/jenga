@@ -8,6 +8,12 @@ from typing import Dict, List, Sequence
 # 3rd party imports
 from birch import Birch
 
+# local imports
+from .config import (
+    CfgKey,
+)
+
+
 # ===== Base Fix Classes =====
 
 
@@ -124,10 +130,11 @@ class EetAddBg1PathCmdFix(JengaCmdFix):
     ) -> List[str]:
         # Add the BG1 path to the command
         try:
-            bg1_path = jenga_config["BGEE_DIR_PATH"]
+            bg1_path = jenga_config[
+                CfgKey.BGIIEE_DIR_PATHS][CfgKey.BGEE_SOURCE]
         except KeyError:
             raise ValueError(
-                "BGEE_DIR_PATH not found in the Jenga config."
+                "BGIIEE_DIR_PATHS.BGEE_SOURCE not found in the Jenga config."
                 "It must be set to the path of the BG1 directory in order for"
                 " the EET installation to work correctly."
             )

@@ -12,9 +12,12 @@ from typing import Dict, List, Optional, Tuple
 import patoolib
 from thefuzz import fuzz, process
 
+# local imports
 from .config import (
+    CfgKey,
     demand_extracted_mod_cache_dir_path,
     demand_zipped_mod_cache_dir_path,
+    demand_game_dir_path,
 )
 from .errors import (
     IllformedModArchiveError,
@@ -22,8 +25,6 @@ from .errors import (
 from .fixes import (
     MOD_TO_ALIAS_LIST_REGISTRY,
 )
-
-# local imports
 from .printing import (
     jprint,
     note_print,
@@ -826,3 +827,56 @@ def extract_all_archives_in_zipped_mods_dir_to_extracted_mods_dir() -> None:
     zipped_dpath = demand_zipped_mod_cache_dir_path()
     extracted_dpath = demand_extracted_mod_cache_dir_path()
     extract_all_zipped_mods_in_dir_to_dir(zipped_dpath, extracted_dpath)
+
+
+def overwrite_dir_with_another_dir(
+    another_dir: str, dir_to_overwrite: str
+) -> None:
+    """Overwrite the game directory with the source directory.
+
+    Parameters
+    ----------
+    another_dir : str
+        The path to the source directory.
+    dir_to_overwrite : str
+        The path to the game directory.
+
+    """
+    oper_print(f"Overwriting '{dir_to_overwrite}' with '{another_dir}'...")
+    if os.path.exists(dir_to_overwrite):
+        make_all_files_in_dir_writable(dir_to_overwrite)
+        shutil.rmtree(dir_to_overwrite)
+        oper_print(f"Deleted existing game directory '{dir_to_overwrite}'.")
+    shutil.copytree(another_dir, dir_to_overwrite)
+    make_all_files_in_dir_writable(dir_to_overwrite)
+    oper_print(f"Game directory overwritten with '{another_dir}'.")
+
+
+def overwrite_game_dir_with_source_dir(
+    game_alias: str, source_dir_type: str,
+) -> None:
+    """Overwrite the game directory with the source directory.
+
+    Parameters
+    ----------
+    game_alias : str
+        The game alias.
+    source_dir_type : str
+        The source directory type. Currently supports 'CLEAN_SOURCE' and
+        'EET_SOURCE'.
+
+    """
+    game_dir = demand_game_dir_path(game_alias, dir_type=CfgKey.TARGET)
+    source_dir = demand_game_dir_path(game_alias, dir_type=source_dir_type)
+    note_print(
+        f"Preparing to OVERWRITE the game directory at {game_dir} with a "
+        f"source directory at {source_dir}!"
+        "To confirm, type 'I confirm' and press Enter."
+    )
+    response = input()
+    if response.lower() != "i confirm":
+        raise ValueError("User did not confirm overwrite.")
+    overwrite_dir_with_another_dir(source_dir, game_dir)
+    sccs_print(
+        f"Game directory at '{game_dir}' overwritten with {source_dir_type} "
+        "directory at '{source_dir}'.")

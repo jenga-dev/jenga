@@ -16,6 +16,7 @@ from jenga import (
     run_build,
     weidu_log_to_json_build_file,
     weidu_log_to_yaml_build_file,
+    overwrite_game_dir_with_source_dir,
 )
 from jenga import (
     reorder_build_file_by_build_order_file as reorder_bfile_by_border_file,
@@ -173,6 +174,37 @@ def extract_zipped_mods_to_extracted_mods() -> None:
 def populate_mod_index() -> None:
     """Populate the mod index from the extracted mods directory."""
     populate_mod_index_from_extracted_mods_dir()
+
+
+@app.command()
+def extract_zipped_mods_and_populate_mod_index() -> None:
+    """Extract all zipped mods to the extracted mods directory and populate the mod index."""
+    extract_all_archives_in_zipped_mods_dir_to_extracted_mods_dir()
+    populate_mod_index_from_extracted_mods_dir()
+
+
+@app.command()
+def overwrite_game_dir_with_clean_source_dir(
+    game: str,
+    eet: Annotated[bool, typer.Option("--eet")] = False,
+) -> None:
+    """Overwrite the game directory with the clean source directory.
+
+    Parameters
+    ----------
+    game : str
+        The game to overwrite the target directory for. E.g. bg2ee, bgiiee,
+        iwdee, etc.
+    eet : bool, optional
+        Whether to use the configured EET-installed game directory as source.
+        Default is False, which means the configured clean game directory
+        will be used as the source.
+
+    """
+    if eet:
+        overwrite_game_dir_with_source_dir(game, "EET_SOURCE")
+    else:
+        overwrite_game_dir_with_source_dir(game, "CLEAN_SOURCE")
 
 
 @app.command()
