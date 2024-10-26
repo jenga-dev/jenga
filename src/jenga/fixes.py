@@ -287,6 +287,7 @@ class EetEndPdialogPartialLinesFix(JengaPrePostFix):
 
 # Mod Names
 EET = "EET"
+LEUI_BG1EE = "LEUI-BG1EE"
 AFH = "AnotherFineHell"
 EET_END = "EET_END"
 LUCY = "LUCY"
@@ -298,6 +299,9 @@ CRUCIBLE = "CRUCIBLE"
 ALIAS_TO_MOD_REGISTRY: Dict[str, str] = {
     # EET ALIASES
     EET.lower(): EET.lower(),
+    # LEUI_BG1EE ALIASES
+    LEUI_BG1EE.lower(): LEUI_BG1EE.lower(),
+    "lefreuts-enhanced-ui-bg1ee-skin".lower(): LEUI_BG1EE.lower(),
     # AFH ALIASES
     AFH.lower(): AFH.lower(),
     "C#ANOTHERFINEHELL".lower(): AFH.lower(),

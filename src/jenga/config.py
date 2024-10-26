@@ -1,7 +1,11 @@
 """Configuration control for jenga."""
 
-from typing import Optional
+# stdlib imports
+import os
+from enum import Enum
+from typing import Optional, Any
 
+# 3rd party imports
 import birch
 from rich.console import Console
 from rich.table import Table
@@ -129,3 +133,33 @@ def get_game_dir(game_alias: Optional[str] = None) -> str | None:
     if game_alias is None:
         return None
     return _GAME_ALIAS_TO_DIR_PATH.get(game_alias.lower())
+
+
+
+class DirPathCheckResult(Enum):
+    IS_NONE = 1
+    DOES_NOT_EXIST = 2
+    IS_NOT_DIR = 3
+    VALID = 4
+
+
+def check_valid_dir_path(dir_path: Any[str, None]) -> DirPathCheckResult:
+    """Check if the directory path is valid.
+
+    Parameters
+    ----------
+    dir_path : str or None
+        The directory path to check.
+
+    Returns
+    -------
+    DirPathCheckResult
+        The result of the directory path check.
+    """
+    if dir_path is None:
+        return DirPathCheckResult.IS_NONE
+    if not os.path.exists(dir_path):
+        return DirPathCheckResult.DOES_NOT_EXIST
+    if os.path.isfile(dir_path):
+        return DirPathCheckResult.IS_NOT_DIR
+    return DirPathCheckResult.VALID

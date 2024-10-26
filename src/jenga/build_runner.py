@@ -31,8 +31,6 @@ from .fixes import (
 from .parsing import (
     UNVERSIONED_MOD_MARKER,
 )
-
-# Local imports
 from .printing import (
     OPER_CLR,
     fail_print,
@@ -47,7 +45,7 @@ from .util import (
     ExtractionType,
     dir_name_from_dir_path,
     extract_mod_to_extracted_mods_dir,
-    fuzzy_find,
+    fuzzy_find_file_or_dir,
     make_all_files_in_dir_writable,
     safe_copy_dir_to_game_dir,
     tp2_fpath_from_mod_dpath,
@@ -55,6 +53,9 @@ from .util import (
 from .weidu_util import (
     get_mod_info_from_weidu_log,
     update_weidu_conf,
+)
+from .mod_index import (
+    get_mod_info,
 )
 
 
@@ -582,6 +583,8 @@ def run_build(
     run_config["pause_every_x_mods"] = pause_every_x_mods
     prefer_zipped_mods = config.get("prefer_zipped_mods", False)
     run_config["prefer_zipped_mods"] = prefer_zipped_mods
+    prefer_mod_index = config.get("prefer_mod_index", False)
+    run_config["prefer_mod_index"] = prefer_mod_index
     try:
         mods = build["mods"]
     except KeyError as e:
@@ -673,12 +676,30 @@ def run_build(
         if force_lang_in_weidu_conf:
             update_weidu_conf(game_install_dir, lang)
 
-        # Find the mod zipped archive, if available
+        # First, we check for the possibility of using the mod index
+        from_mod_index = False
+        if prefer_mod_index:
+            mod_info = get_mod_info(mod_name)
+            if mod_info:
+                from_mod_index = True
+                mod_dir = mod_info.extracted_dpath
+                mod_dir_name = dir_name_from_dir_path(mod_dir)
+                target_mod_dir = os.path.join(game_install_dir, mod_dir_name)
+                safe_copy_dir_to_game_dir(mod_dir, target_mod_dir)
+                mod_tp2_path = tp2_fpath_from_mod_dpath(
+                    target_mod_dir, mod_name)
+                oper_print(
+                    f"Found mod {mod_name} in the mod index. "
+                    f"Extracted mod directory: {target_mod_dir}"
+                    f"Mod tp2 file: {mod_tp2_path}"
+                )
+
+        # Find the mod zipped archive, if available and preferred
         mod_dir = None
         target_mod_dir = None
         mod_tp2_path = None
         from_archive = False
-        if prefer_zipped_mods:
+        if prefer_zipped_mods and not from_mod_index:
             oper_print("Zipped mods preferred, so...")
             if not zipped_mods_dir:
                 msg = (
@@ -746,16 +767,16 @@ def run_build(
                             )
                             shutil.copy(fpath, target_fpath)
 
-        if not from_archive:
+        if not from_mod_index and not from_archive:
             # Find the mod directory
-            mod_dir = fuzzy_find(extracted_mods_dir, mod_name)
+            mod_dir = fuzzy_find_file_or_dir(
+                extracted_mods_dir, mod_name, dir_search=True)
             # Copy the mod directory to the game directory
             target_mod_dir = os.path.join(game_install_dir, mod_name)
             safe_copy_dir_to_game_dir(mod_dir, target_mod_dir)
             # Find .tp2 file inside
-            mod_tp2_path = fuzzy_find(
-                target_mod_dir, mod_name, [".tp2"], setup_file_search=True
-            )
+            mod_tp2_path = fuzzy_find_file_or_dir(
+                target_mod_dir, mod_name, setup_file_search=True)
 
         if target_mod_dir is None or mod_tp2_path is None:
             fail_print(

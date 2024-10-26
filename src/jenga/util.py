@@ -6,7 +6,7 @@ import shutil
 import tempfile
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 
 # Third-party imports
 import patoolib
@@ -24,7 +24,29 @@ from .printing import (
     jprint,
     note_print,
     oper_print,
+    sccs_print,
 )
+from .config import (
+    ZIPPED_MOD_CACHE_DIR_PATH,
+    EXTRACTED_MOD_CACHE_DIR_PATH,
+)
+
+
+def dir_name_from_dir_path(dir_path: str) -> str:
+    """Get the directory name from the directory path.
+
+    Parameters
+    ----------
+    dir_path : str
+        The path to the directory.
+
+    Returns
+    -------
+    str
+        The name of the directory.
+
+    """
+    return os.path.basename(os.path.normpath(dir_path))
 
 
 def mirror_backslashes_in_file(
@@ -87,8 +109,7 @@ def fuzzy_find(
     directory: str,
     name: str,
     file_types: Optional[List[str]] = None,
-    setup_file_search: Optional[bool] = False,
-) -> str:
+) -> Tuple[Optional[str], float]:
     """Fuzzy find the file matching the given name in directory.
 
     Parameters
@@ -100,14 +121,13 @@ def fuzzy_find(
     file_types : List[str], optional
         The file types to search for. If not provided, allows for all
         file types.
-    setup_file_search : bool, optional
-        Whether to search for possibly setup- prefixed files. Default is False.
 
     Returns
     -------
     str
-        The path to the file found in the directory.
-
+        The path to the best matching file/folder found in the directory.
+    score
+        The score of the match.
     """
     if file_types is None:
         _is_valid_entry = lambda entry: True
@@ -125,56 +145,115 @@ def fuzzy_find(
     ]
     result = process.extractOne(name.lower(), entries, scorer=fuzz.ratio)
     if result is None:
-        if file_types:
-            ftstr = "/".join(file_types)
-            raise FileNotFoundError(
-                f"Unable to locate {name}.{ftstr} in {directory}."
-            )
-        raise FileNotFoundError(f"Unable to locate {name}.* in {directory}.")
-    best_match, score = result
-    if score < 30:
-        if name.lower() in MOD_TO_ALIAS_LIST_REGISTRY:
-            for alias in MOD_TO_ALIAS_LIST_REGISTRY[name.lower()]:
-                if alias != name.lower():
-                    return fuzzy_find(
-                        directory, alias, file_types, setup_file_search
-                    )
-        if setup_file_search and not name.startswith("setup-"):
-            setup_prefixed = f"setup-{name.lower()}"
-            return fuzzy_find(directory, setup_prefixed, file_types, True)
-        # try with mac- prefix for archives and folders:
-        if (
-            not setup_file_search
-            and not name.startswith("mac-")
-            and (not name.startswith("osx-"))
-        ):
-            mac_prefixed = f"mac-{name.lower()}"
-            return fuzzy_find(directory, mac_prefixed, file_types, False)
-        # try with the osx- prefix for archives and folders:
-        if (
-            not setup_file_search
-            and not name.startswith("osx-")
-            and (not name.startswith("mac-"))
-        ):
-            osx_prefixed = f"osx-{name.lower()}"
-            return fuzzy_find(directory, osx_prefixed, file_types, False)
-        if setup_file_search:
-            note_print(
-                f"Unable to locate {name}.tp2 in {directory} with "
-                "sufficient accuracy. Returning best match: {best_match}."
-            )
-            return os.path.join(directory, best_match)
-        if file_types:
-            ftstr = "/".join(file_types)
-            raise FileNotFoundError(
-                f"Unable to locate {name}{ftstr} in {directory} with "
-                f"sufficient accuracy. Returning best match: {best_match}."
-            )
-        raise FileNotFoundError(
-            f"Unable to locate {name}.* in {directory} with sufficient "
-            "accuracy."
-        )
-    return os.path.join(directory, best_match)
+        return None, 0
+    best_match: str = result[0]
+    score: float = result[1]
+    return best_match, score
+
+
+def fuzzy_find_file_or_dir(
+    directory: str,
+    name: str,
+    setup_file_search: Optional[bool] = False,
+    archive_search: Optional[bool] = False,
+    dir_search: Optional[bool] = False,
+) -> str:
+    """Fuzzy find the file matching the given name in directory.
+
+    Parameters
+    ----------
+    directory : str
+        The directory to search for the file.
+    name : str
+        The name of the file to search for.
+    setup_file_search : bool, optional
+        Whether to search for possibly setup- prefixed files. Default is False.
+    archive_search : bool, optional
+        Whether to search for archives. Default is False.
+    dir_search : bool, optional
+        Whether to search for directories. Default is False.
+
+    Returns
+    -------
+    str
+        The path to the file found in the directory.
+
+    """
+    if len(name) > 5:
+        fnfs = os.listdir(directory)
+        candidates = []
+        for fof in fnfs:
+            if name.lower() in fof.lower():
+                candidates.append(fof)
+        if len(candidates) == 1:
+            return os.path.join(directory, candidates[0])
+        low_candidates = [cand.lower() for cand in candidates]
+        result = process.extractOne(
+            name.lower(), low_candidates, scorer=fuzz.ratio)
+        if result is not None:
+            best_match = candidates[low_candidates.index(result[0])]
+            best_score = result[1]
+            if best_score > 30:
+                return os.path.join(directory, best_match)
+
+    search_aliases = [name]
+    if name.lower() in MOD_TO_ALIAS_LIST_REGISTRY:
+        search_aliases = MOD_TO_ALIAS_LIST_REGISTRY[name.lower()]
+    if archive_search:
+        file_types = [".zip", ".tar.gz", ".rar"]
+        saliases = search_aliases.copy()
+        search_aliases.clear()
+        for alias in saliases:
+            search_aliases.append(alias)
+            search_aliases.append(f"osx-{alias}")
+            search_aliases.append(f"mac-{alias}")
+    elif setup_file_search:
+        file_types = [".tp2"]
+        saliases = search_aliases.copy()
+        search_aliases.clear()
+        for alias in saliases:
+            search_aliases.append(alias)
+            search_aliases.append(f"setup-{alias}")
+    else:
+        file_types = None
+    if archive_search or dir_search:
+        # sort so longest names are searched first
+        search_aliases.sort(key=len, reverse=True)
+    else:
+        # sort so shortest names are searched first
+        search_aliases.sort(key=len)
+    results_and_scores = []
+    for alias in search_aliases:
+        best_match, score = fuzzy_find(directory, alias, file_types)
+        results_and_scores.append((best_match, score))
+    results_and_scores.sort(key=lambda x: x[1], reverse=True)
+    print(results_and_scores)
+    best_match = results_and_scores[0][0]
+    best_score = results_and_scores[0][1]
+    if best_match is not None and best_score > 30:
+        return os.path.join(directory, best_match)
+    raise FileNotFoundError(f"Unable to locate {name}.* in {directory}.")
+
+
+def tp2_fpath_from_mod_dpath(mod_dpath: str, mod_name: str) -> str:
+    """Get the path to the best matching .tp2 file from the mod directory path.
+
+    Parameters
+    ----------
+    mod_dpath : str
+        The path to the mod directory.
+    mod_name : str
+        The name of the mod.
+
+    Returns
+    -------
+    str
+        The path to the best matching .tp2 file.
+
+    """
+    return fuzzy_find_file_or_dir(
+        mod_dpath, mod_name, setup_file_search=True
+    )
 
 
 class ExtractionType(Enum):
@@ -242,99 +321,110 @@ def _get_tp2_fpaths(
     )
 
 
-def extract_mod_to_extracted_mods_dir(
-    zipped_mods_dpath: str, extracted_mods_dir_path: str, mod_name: str
-) -> ExtractionResult:
-    """Extract a mod to the extracted mods directory.
+def safe_copy_dir_to_game_dir(mod_dir: str, target_mod_dir: str) -> None:
+    """Copy the mod directory to the game directory.
 
     Parameters
     ----------
-    zipped_mods_dpath : str
-        The path to the directory containing the zipped mods.
+    mod_dir : str
+        The path to the mod directory.
+    target_mod_dir : str
+        The path to the target mod directory.
+
+    """
+    oper_print(f"Copying {mod_dir} to {target_mod_dir}...")
+    if os.path.exists(target_mod_dir):
+        make_all_files_in_dir_writable(target_mod_dir)
+        shutil.rmtree(target_mod_dir)
+        oper_print(f"Deleted existing mod directory '{target_mod_dir}'.")
+    shutil.copytree(mod_dir, target_mod_dir)
+    make_all_files_in_dir_writable(target_mod_dir)
+    oper_print(f"Mod copied to '{target_mod_dir}'.")
+
+
+def get_tp2_names_and_paths(
+    dir_path: str,
+) -> Dict[str, str]:
+    """Get names and paths of all .tp2 files in a directory and subdirectories.
+
+    Parameters
+    ----------
+    dir_path : str
+        The path to the directory.
+
+    Returns
+    -------
+    Dict[str, str]
+        A dictionary containing the names and paths of all .tp2 files.
+
+    """
+    mod_tp2_fnames = {}
+    for root, dirs, files in os.walk(dir_path):
+        for f in files:
+            if f.lower().endswith(".tp2"):
+                fname = os.path.splitext(f)[0]
+                mod_tp2_fnames[fname] = os.path.join(root, f)
+    return mod_tp2_fnames
+
+
+def extract_archive_to_extracted_mods_dir(
+    archive_fpath: str,
+    extracted_mods_dir_path: str,
+    mod_name: Optional[str] = None,
+    verbose: Optional[bool] = False,
+) -> ExtractionResult:
+    """Extract an archive to the extracted mods directory.
+
+    Parameters
+    ----------
+    archive_fpath : str
+        The path to the archive.
     extracted_mods_dir_path : str
         The path to the directory containing the extracted mods.
-    mod_name : str
-        The name of the mod to extract.
+    mod_name : str, optional
+        The name of the mod to extract. If not provided, the name will be
+        guessed from the archive contents.
+    verbose : bool, optional
+        Whether to print verbose output. Default is False.
 
     Returns
     -------
     ExtractionResult
         A dataclass containing the extraction result.
 
-    Explanation
-
-    This function does the following:
-    1. Searches mods_archives_dir_path for the archive (zip, tar.gz, rar,
-    etc.) most closely named like mod_name (e.g.
-    find osx-item_rev-v4b10.tar.gz for mod_name = "ITEM_REV") using thefuzz.
-    2. Searches extracted_mods_dir_path for the folder most closely named
-    like mod_name.
-    3. Prompt the user for permission to delete this folder. If answers 'y' or
-    'yes', delete it.
-    4. Extract the archive (e.g. using patool), to a temp dir (get path w/
-    tempfile.mkdtemp).
-    5. E.g. osx-item_rev-v4b10.tar.gz extracted into
-    '/var/folders/2q/tmpj1p/osx-item_rev-v4b10', which is the unarchived dir.
-    There are 4 types of mod structures:
-    (A) Most common. The unarchived dir contains a single mod folder, very
-    closely named to mod_name, and few files we don't need (README.md,
-    .command, .exe file, etc). In this case verify the mod folder contains a
-    .tp2 file, and copy only the mod folder to extracted mods folder.
-    (B) The unarchived dir contains just a .tp2 file, no folders. In this case,
-    copy the unarchived dir itself to the extracted mods folder.
-    (C) The unarchived dir contains a single mod folder (without a .tp2 file
-    inside it) and a .tp2 file next to it. In this case, copy the mod folder
-    and the .tp2 file into the extracted mods dir. (D) The unarchived dir
-    contains several folders, each a sub-mod (e.g., for EET,  the folders EET,
-    EET_END & EET_GUI), each containing a .tp2 file. In this case, copy each
-    folder in the unarchived dir that contains a .tp2 file into the extracted
-    mods dir.
-    6. Delete the unarchived dir from the unique temp folder we got from the
-    OS.
-    7. Return a complex return object (perhaps defined using a dataclass) that
-    contains both an enum detailing which of the above case was encountered,
-    and the path to the newly created mod folder in the extracted mods dir,
-    the path to the .tp2 file, and a list of any additional newly created mod
-    folders (for case D). In case D, the path to the mod folder named most
-    closely resembling the mod name is chosen as the main path returned, and
-
     """
-    # Step 1: Find the best match for the mod archive using fuzzy matching
-    oper_print(
-        f"Looking for zipped archive for {mod_name} in "
-        "{zipped_mods_dpath}..."
-    )
-    archive_fpath = fuzzy_find(
-        zipped_mods_dpath, mod_name, [".zip", "tar.gz", "rar"]
-    )
-    archive_fname = os.path.basename(archive_fpath)
-    oper_print(f"Best match for archive of mod '{mod_name}': {archive_fname}")
     # remove extention from the archive name
+    archive_fname = os.path.basename(archive_fpath)
     archive_fname_no_ext = os.path.splitext(archive_fname)[0]
-
-    # Step 2: Search for an existing mod folder
-    extracted_mods = os.listdir(extracted_mods_dir_path)
-    res = process.extractOne(mod_name, extracted_mods)
-    if res is None:
-        raise FileNotFoundError(
-            f"Unable to locate existing mod folder for mod '{mod_name}'"
-        )
-    best_folder_match = res[0]
-    existing_mod_folder_path = os.path.join(
-        extracted_mods_dir_path, best_folder_match
-    )
-
-    # Step 3: Prompt user for deletion
-    if os.path.exists(existing_mod_folder_path):
-        response = input(
-            f"Delete existing mod folder '{best_folder_match}'? (y/n): "
-        )
-        if response.lower() in ["y", "yes"]:
-            shutil.rmtree(existing_mod_folder_path)
 
     # Step 4: Extract the archive
     temp_dir = tempfile.mkdtemp()
     patoolib.extract_archive(archive_fpath, outdir=temp_dir)
+
+    # Step 4.5: Guess the mod name if not provided
+    # recursively find all .tp2 files in the extracted archive
+    if mod_name is None:
+        mod_tp2_fnames = list(get_tp2_names_and_paths(temp_dir).keys())
+        if len(mod_tp2_fnames) == 0:
+            raise IllformedModArchiveError(
+                "Unable to locate .tp2 file in unarchived mod archive "
+                f"'{temp_dir}'"
+            )
+        if len(mod_tp2_fnames) == 1:
+            mod_name = os.path.splitext(mod_tp2_fnames[0])[0]
+        else:
+            # infer mod name from the shortest .tp2 file name
+            min_name = min(mod_tp2_fnames, key=len)
+            if min_name is None:
+                raise IllformedModArchiveError(
+                    "Unable to infer mod name from .tp2 files in unarchived "
+                    f"mod archive '{temp_dir}'"
+                )
+            mod_name = os.path.splitext(min_name)[0]
+    if mod_name is None:
+        raise IllformedModArchiveError(
+            "Unable to infer mod name from .tp2 file in unarchived "
+            f"mod archive '{temp_dir}'")
 
     # Step 5: Identify mod structure and handle accordingly
     files_and_folders_in_temp = os.listdir(temp_dir)
@@ -531,6 +621,11 @@ def extract_mod_to_extracted_mods_dir(
         make_all_files_in_dir_writable(primary_mod_dpath)
         shutil.rmtree(primary_mod_dpath)
     shutil.copytree(primary_mod_temp_dpath, primary_mod_dpath)
+    if verbose:
+        sccs_print(
+            f"Primary mod folder '{primary_mod_dpath}' copied to "
+            f"'{extracted_mods_dir_path}'."
+        )
     # 6.2: Copy additional mod folders
     for temp_dpath, dpath in zip(
         additional_mod_temp_dpaths, additional_mod_dpaths
@@ -539,10 +634,20 @@ def extract_mod_to_extracted_mods_dir(
             make_all_files_in_dir_writable(dpath)
             shutil.rmtree(dpath)
         shutil.copytree(temp_dpath, dpath)
+        if verbose:
+            sccs_print(
+                f"Additional mod folder '{dpath}' copied to "
+                f"'{extracted_mods_dir_path}'."
+            )
     # 6.3: Copy the main .tp2 file
     if os.path.exists(tp2_fpath):
         os.remove(tp2_fpath)
     shutil.copy(tp2_temp_fpath, tp2_fpath)
+    if verbose:
+        sccs_print(
+            f"Main .tp2 file '{tp2_fpath}' copied to "
+            f"'{extracted_mods_dir_path}'."
+        )
     # 6.4: Copy additional .tp2 files
     for temp_fpath, fpath in zip(
         additional_tp2_temp_fpaths, additional_tp2_fpaths
@@ -550,11 +655,19 @@ def extract_mod_to_extracted_mods_dir(
         if os.path.exists(fpath):
             os.remove(fpath)
         shutil.copy(temp_fpath, fpath)
+        if verbose:
+            sccs_print(
+                f"Additional .tp2 file '{fpath}' copied to "
+                f"'{extracted_mods_dir_path}'.")
     # 6.5: Copy additional files
     for temp_fpath, fpath in zip(additional_temp_fpaths, additional_fpaths):
         if os.path.exists(fpath):
             os.remove(fpath)
         shutil.copy(temp_fpath, fpath)
+        if verbose:
+            sccs_print(
+                f"Additional file '{fpath}' copied to "
+                f"'{extracted_mods_dir_path}'.")
 
     # Step 7: Clean up temporary directory
     shutil.rmtree(temp_dir)
@@ -569,58 +682,146 @@ def extract_mod_to_extracted_mods_dir(
     )
 
 
-def safe_copy_dir_to_game_dir(mod_dir: str, target_mod_dir: str) -> None:
-    """Copy the mod directory to the game directory.
+def extract_mod_to_extracted_mods_dir(
+    zipped_mods_dpath: str, extracted_mods_dir_path: str, mod_name: str
+) -> ExtractionResult:
+    """Extract a mod to the extracted mods directory.
 
     Parameters
     ----------
-    mod_dir : str
-        The path to the mod directory.
-    target_mod_dir : str
-        The path to the target mod directory.
-
-    """
-    oper_print(f"Copying {mod_dir} to {target_mod_dir}...")
-    if os.path.exists(target_mod_dir):
-        make_all_files_in_dir_writable(target_mod_dir)
-        shutil.rmtree(target_mod_dir)
-        oper_print(f"Deleted existing mod directory '{target_mod_dir}'.")
-    shutil.copytree(mod_dir, target_mod_dir)
-    make_all_files_in_dir_writable(target_mod_dir)
-    oper_print(f"Mod copied to '{target_mod_dir}'.")
-
-
-def dir_name_from_dir_path(dir_path: str) -> str:
-    """Get the directory name from the directory path.
-
-    Parameters
-    ----------
-    dir_path : str
-        The path to the directory.
-
-    Returns
-    -------
-    str
-        The name of the directory.
-
-    """
-    return os.path.basename(os.path.normpath(dir_path))
-
-
-def tp2_fpath_from_mod_dpath(mod_dpath: str, mod_name: str) -> str:
-    """Get the path to the best matching .tp2 file from the mod directory path.
-
-    Parameters
-    ----------
-    mod_dpath : str
-        The path to the mod directory.
+    zipped_mods_dpath : str
+        The path to the directory containing the zipped mods.
+    extracted_mods_dir_path : str
+        The path to the directory containing the extracted mods.
     mod_name : str
-        The name of the mod.
+        The name of the mod to extract.
 
     Returns
     -------
-    str
-        The path to the best matching .tp2 file.
+    ExtractionResult
+        A dataclass containing the extraction result.
+
+    Explanation
+
+    This function does the following:
+    1. Searches mods_archives_dir_path for the archive (zip, tar.gz, rar,
+    etc.) most closely named like mod_name (e.g.
+    find osx-item_rev-v4b10.tar.gz for mod_name = "ITEM_REV") using thefuzz.
+    2. Searches extracted_mods_dir_path for the folder most closely named
+    like mod_name.
+    3. Prompt the user for permission to delete this folder. If answers 'y' or
+    'yes', delete it.
+    4. Extract the archive (e.g. using patool), to a temp dir (get path w/
+    tempfile.mkdtemp).
+    5. E.g. osx-item_rev-v4b10.tar.gz extracted into
+    '/var/folders/2q/tmpj1p/osx-item_rev-v4b10', which is the unarchived dir.
+    There are 4 types of mod structures:
+    (A) Most common. The unarchived dir contains a single mod folder, very
+    closely named to mod_name, and few files we don't need (README.md,
+    .command, .exe file, etc). In this case verify the mod folder contains a
+    .tp2 file, and copy only the mod folder to extracted mods folder.
+    (B) The unarchived dir contains just a .tp2 file, no folders. In this case,
+    copy the unarchived dir itself to the extracted mods folder.
+    (C) The unarchived dir contains a single mod folder (without a .tp2 file
+    inside it) and a .tp2 file next to it. In this case, copy the mod folder
+    and the .tp2 file into the extracted mods dir. (D) The unarchived dir
+    contains several folders, each a sub-mod (e.g., for EET,  the folders EET,
+    EET_END & EET_GUI), each containing a .tp2 file. In this case, copy each
+    folder in the unarchived dir that contains a .tp2 file into the extracted
+    mods dir.
+    6. Delete the unarchived dir from the unique temp folder we got from the
+    OS.
+    7. Return a complex return object (perhaps defined using a dataclass) that
+    contains both an enum detailing which of the above case was encountered,
+    and the path to the newly created mod folder in the extracted mods dir,
+    the path to the .tp2 file, and a list of any additional newly created mod
+    folders (for case D). In case D, the path to the mod folder named most
+    closely resembling the mod name is chosen as the main path returned, and
 
     """
-    return fuzzy_find(mod_dpath, mod_name, [".tp2"], setup_file_search=True)
+    # Step 1: Find the best match for the mod archive using fuzzy matching
+    oper_print(
+        f"Looking for zipped archive for {mod_name} in "
+        "{zipped_mods_dpath}..."
+    )
+    archive_fpath = fuzzy_find_file_or_dir(
+        zipped_mods_dpath, mod_name, archive_search=True,
+    )
+    archive_fname = os.path.basename(archive_fpath)
+    oper_print(f"Best match for archive of mod '{mod_name}': {archive_fname}")
+    # prompt for user confirmation
+    note_print(
+        f"Found archive '{archive_fname}' for mod '{mod_name}' in "
+        f"'{zipped_mods_dpath}'. Is this correct? (y/n)"
+    )
+    response = input()
+    if response.lower() not in ["y", "yes"]:
+        raise FileNotFoundError(
+            f"Unable to locate archive for mod '{mod_name}'."
+            "Please extract the mod manually into the extracted mods directory"
+            " and add `prefer_extracted: true` to the mod's entry in your"
+            " Jenga build file."
+        )
+
+    # Step 2: Search for an existing mod folder in extracted_mods_dir_path
+    extracted_mods = os.listdir(extracted_mods_dir_path)
+    res = process.extractOne(mod_name, extracted_mods)
+    if res is not None:
+        best_folder_match = res[0]
+        existing_mod_folder_path = os.path.join(
+            extracted_mods_dir_path, best_folder_match
+        )
+        # Step 3: Prompt user for deletion
+        if os.path.exists(existing_mod_folder_path):
+            note_print(
+                f"Delete existing mod folder '{best_folder_match}'? (y/n): ")
+            response = input()
+            if response.lower() in ["y", "yes"]:
+                shutil.rmtree(existing_mod_folder_path)
+
+    # Step 4-7: Extract the archive and handle the mod structure
+    return extract_archive_to_extracted_mods_dir(
+        archive_fpath, extracted_mods_dir_path, mod_name
+    )
+
+
+def extract_all_zipped_mods_in_dir_to_dir(
+    zip_mods_dpath: str,
+    extracted_mods_dpath: str,
+) -> None:
+    """Extract all zipped mods to the extracted mods directory.
+
+    Parameters
+    ----------
+    zip_mods_dpath : str
+        The path to the directory containing the zipped mods.
+    extracted_mods_dpath : str
+        The path to the directory containing the extracted mods.
+
+    """
+    SUPPORTED_EXT = [".zip", ".tar.gz", ".rar"]
+    dir_items = os.listdir(zip_mods_dpath)
+    archives = [
+        item for item in dir_items
+        if any(item.endswith(ext) for ext in SUPPORTED_EXT)
+    ]
+    for archive in archives:
+        archive_file_path = os.path.join(zip_mods_dpath, archive)
+        oper_print(f"Extracting {archive}...")
+        extract_archive_to_extracted_mods_dir(
+            archive_file_path, extracted_mods_dpath, mod_name=None)
+        oper_print(f"Finished extracting {archive}.")
+
+
+def extract_all_archives_in_zipped_mods_dir_to_extracted_mods_dir(
+) -> None:
+    """Extract all archives in the zipped mods dir to the extracted dir."""
+    oper_print(
+        f"Extracting all archives in '{zipped_mods_dpath}' to "
+        f"'{extracted_mods_dpath}'..."
+    )
+    extract_all_zipped_mods_in_dir_to_dir(zipped_mods_dpath, extracted_mods_dpath)
+    oper_print(
+        f"Finished extracting all archives in '{zipped_mods_dpath}' to "
+        f"'{extracted_mods_dpath}'."
+    )
