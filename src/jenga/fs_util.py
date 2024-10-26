@@ -16,6 +16,7 @@ from thefuzz import fuzz, process
 from .config import (
     CfgKey,
     demand_extracted_mod_cache_dir_path,
+    get_game_dir,
     demand_game_dir_path,
     demand_zipped_mod_cache_dir_path,
 )
@@ -845,9 +846,17 @@ def overwrite_dir_with_another_dir(
     oper_print(f"Overwriting '{dir_to_overwrite}' with '{another_dir}'...")
     if os.path.exists(dir_to_overwrite):
         make_all_files_in_dir_writable(dir_to_overwrite)
-        shutil.rmtree(dir_to_overwrite)
+        try:
+            shutil.rmtree(dir_to_overwrite)
+        except PermissionError:
+            # run as sudo
+            os.system(f'sudo rm -rf "{dir_to_overwrite}"')
         oper_print(f"Deleted existing game directory '{dir_to_overwrite}'.")
-    shutil.copytree(another_dir, dir_to_overwrite)
+    try:
+        shutil.copytree(another_dir, dir_to_overwrite)
+    except PermissionError:
+        # run as sudo
+        os.system(f'sudo cp -r "{another_dir}" "{dir_to_overwrite}"')
     make_all_files_in_dir_writable(dir_to_overwrite)
     oper_print(f"Game directory overwritten with '{another_dir}'.")
 
@@ -867,11 +876,11 @@ def overwrite_game_dir_with_source_dir(
         'EET_SOURCE'.
 
     """
-    game_dir = demand_game_dir_path(game_alias, dir_type=CfgKey.TARGET)
+    game_dir = get_game_dir(game_alias, CfgKey.TARGET)
     source_dir = demand_game_dir_path(game_alias, dir_type=source_dir_type)
     note_print(
-        f"Preparing to OVERWRITE the game directory at {game_dir} with a "
-        f"source directory at {source_dir}!"
+        f"Preparing to OVERWRITE the game directory at '{game_dir}' with a "
+        f"source directory at '{source_dir}'! \n"
         "To confirm, type 'I confirm' and press Enter."
     )
     response = input()
@@ -879,6 +888,6 @@ def overwrite_game_dir_with_source_dir(
         raise ValueError("User did not confirm overwrite.")
     overwrite_dir_with_another_dir(source_dir, game_dir)
     sccs_print(
-        f"Game directory at '{game_dir}' overwritten with {source_dir_type} "
-        "directory at '{source_dir}'."
+        f"Game directory at '{game_dir}' overwritten with '{source_dir_type}' "
+        f"directory at '{source_dir}'."
     )

@@ -2,7 +2,7 @@
 
 # stdlib imports
 import os
-from typing import Any, Optional
+from typing import Union, Optional
 
 # 3rd party imports
 import birch
@@ -153,12 +153,12 @@ def get_game_dir(
     if game_dir_paths is None:
         return None
     if sub_key is None:
-        return game_dir_paths.get(CfgKey.TARGET)
-    return game_dir_paths.get(sub_key)
+        return CFG[key][CfgKey.TARGET]
+    return CFG[key][sub_key]
 
 
 def demand_valid_dir_path_config_val(
-    dir_path: Any[str, None],
+    dir_path: Union[str, None],
     config_key: str,
 ) -> str:
     """Check if the directory path is valid.
