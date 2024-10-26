@@ -13,7 +13,6 @@ from .config import (
     CfgKey,
 )
 
-
 # ===== Base Fix Classes =====
 
 
@@ -130,8 +129,9 @@ class EetAddBg1PathCmdFix(JengaCmdFix):
     ) -> List[str]:
         # Add the BG1 path to the command
         try:
-            bg1_path = jenga_config[
-                CfgKey.BGIIEE_DIR_PATHS][CfgKey.BGEE_SOURCE]
+            bg1_path = jenga_config[CfgKey.BGIIEE_DIR_PATHS][
+                CfgKey.BGEE_SOURCE
+            ]
         except KeyError:
             raise ValueError(
                 "BGIIEE_DIR_PATHS.BGEE_SOURCE not found in the Jenga config."

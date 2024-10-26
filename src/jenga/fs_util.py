@@ -16,8 +16,8 @@ from thefuzz import fuzz, process
 from .config import (
     CfgKey,
     demand_extracted_mod_cache_dir_path,
-    demand_zipped_mod_cache_dir_path,
     demand_game_dir_path,
+    demand_zipped_mod_cache_dir_path,
 )
 from .errors import (
     IllformedModArchiveError,
@@ -853,7 +853,8 @@ def overwrite_dir_with_another_dir(
 
 
 def overwrite_game_dir_with_source_dir(
-    game_alias: str, source_dir_type: str,
+    game_alias: str,
+    source_dir_type: str,
 ) -> None:
     """Overwrite the game directory with the source directory.
 
@@ -879,4 +880,5 @@ def overwrite_game_dir_with_source_dir(
     overwrite_dir_with_another_dir(source_dir, game_dir)
     sccs_print(
         f"Game directory at '{game_dir}' overwritten with {source_dir_type} "
-        "directory at '{source_dir}'.")
+        "directory at '{source_dir}'."
+    )

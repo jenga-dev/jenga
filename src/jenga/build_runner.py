@@ -28,6 +28,15 @@ from .fixes import (
     get_cmd_fixes_for_mod,
     get_prepost_fixes_for_mod,
 )
+from .fs_util import (
+    ExtractionType,
+    dir_name_from_dir_path,
+    extract_mod_to_extracted_mods_dir,
+    fuzzy_find_file_or_dir,
+    make_all_files_in_dir_writable,
+    safe_copy_dir_to_game_dir,
+    tp2_fpath_from_mod_dpath,
+)
 from .mod_index import (
     get_mod_info,
 )
@@ -43,15 +52,6 @@ from .printing import (
     print_goodbye,
     rprint,
     sccs_print,
-)
-from .fs_util import (
-    ExtractionType,
-    dir_name_from_dir_path,
-    extract_mod_to_extracted_mods_dir,
-    fuzzy_find_file_or_dir,
-    make_all_files_in_dir_writable,
-    safe_copy_dir_to_game_dir,
-    tp2_fpath_from_mod_dpath,
 )
 from .weidu_util import (
     get_mod_info_from_weidu_log,

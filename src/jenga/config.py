@@ -213,12 +213,15 @@ def demand_game_dir_path(game_alias, dir_type: Optional[str]) -> str:
         The game alias.
     dir_type : str, optional
         The game directory type to return. Default is the target directory.
+
     """
     if dir_type is None:
         dir_type = CfgKey.TARGET
     game_dir = get_game_dir(game_alias, dir_type)
     if game_dir is None:
         raise ValueError(
-            f"{dir_type} game directory is not set for game {game_alias}.")
+            f"{dir_type} game directory is not set for game {game_alias}."
+        )
     return demand_valid_dir_path_config_val(
-        game_dir, f"{game_alias} game directory")
+        game_dir, f"{game_alias} game directory"
+    )
