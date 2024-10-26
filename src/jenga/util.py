@@ -22,6 +22,9 @@ from .printing import (
     note_print,
     oper_print,
 )
+from .fixes import (
+    MOD_TO_ALIAS_LIST_REGISTRY,
+)
 
 
 def mirror_backslashes_in_file(
@@ -129,15 +132,36 @@ def fuzzy_find(
             )
         raise FileNotFoundError(f"Unable to locate {name}.* in {directory}.")
     best_match, score = result
-    if score < 50:
+    if score < 30:
+        if name.lower() in MOD_TO_ALIAS_LIST_REGISTRY:
+            for alias in MOD_TO_ALIAS_LIST_REGISTRY[name.lower()]:
+                if alias != name.lower():
+                    return fuzzy_find(
+                        directory, alias, file_types, setup_file_search)
         if setup_file_search and not name.startswith("setup-"):
             setup_prefixed = f"setup-{name.lower()}"
-            return fuzzy_find(directory, setup_prefixed, file_types)
+            return fuzzy_find(directory, setup_prefixed, file_types, True)
+        # try with mac- prefix for archives and folders:
+        if not setup_file_search and not name.startswith("mac-") and (
+                not name.startswith("osx-")):
+            mac_prefixed = f"mac-{name.lower()}"
+            return fuzzy_find(directory, mac_prefixed, file_types, False)
+        # try with the osx- prefix for archives and folders:
+        if not setup_file_search and not name.startswith("osx-") and (
+                not name.startswith("mac-")):
+            osx_prefixed = f"osx-{name.lower()}"
+            return fuzzy_find(directory, osx_prefixed, file_types, False)
+        if setup_file_search:
+            note_print(
+                f"Unable to locate {name}.tp2 in {directory} with "
+                "sufficient accuracy. Returning best match: {best_match}."
+            )
+            return os.path.join(directory, best_match)
         if file_types:
             ftstr = "/".join(file_types)
             raise FileNotFoundError(
-                f"Unable to locate {name}.{ftstr} in {directory}. with "
-                "sufficient accuracy."
+                f"Unable to locate {name}{ftstr} in {directory} with "
+                f"sufficient accuracy. Returning best match: {best_match}."
             )
         raise FileNotFoundError(
             f"Unable to locate {name}.* in {directory} with sufficient "
@@ -187,7 +211,7 @@ def _get_tp2_fpaths(
     """
     # select the most closely named .tp2 file in the primary mod folder
     mod_tp2_fnames = [
-        f for f in os.listdir(mod_temp_dpath) if f.endswith(".tp2")
+        f for f in os.listdir(mod_temp_dpath) if f.lower().endswith(".tp2")
     ]
     res = process.extractOne(mod_name, mod_tp2_fnames)
     if res is not None:
@@ -211,14 +235,16 @@ def _get_tp2_fpaths(
 
 
 def extract_mod_to_extracted_mods_dir(
-    mods_archives_dir_path: str, extracted_mods_dir_path: str, mod_name: str
+    zipped_mods_dpath: str,
+    extracted_mods_dir_path: str,
+    mod_name: str
 ) -> ExtractionResult:
     """Extract a mod to the extracted mods directory.
 
     Parameters
     ----------
-    mods_archives_dir_path : str
-        The path to the directory containing the mod archives.
+    zipped_mods_dpath : str
+        The path to the directory containing the zipped mods.
     extracted_mods_dir_path : str
         The path to the directory containing the extracted mods.
     mod_name : str
@@ -268,16 +294,14 @@ def extract_mod_to_extracted_mods_dir(
 
     """
     # Step 1: Find the best match for the mod archive using fuzzy matching
-    archives = os.listdir(mods_archives_dir_path)
-    res = process.extractOne(mod_name, archives)
-    if res is None:
-        raise FileNotFoundError(
-            f"Unable to locate archive for mod '{mod_name}' in "
-            f"directory '{mods_archives_dir_path}'"
-        )
-    archive_fname = res[0]
+    oper_print(
+        f"Looking for zipped archive for {mod_name} in "
+        "{zipped_mods_dpath}...")
+    archive_fpath = fuzzy_find(
+        zipped_mods_dpath, mod_name, [".zip", "tar.gz", "rar"]
+    )
+    archive_fname = os.path.basename(archive_fpath)
     oper_print(f"Best match for archive of mod '{mod_name}': {archive_fname}")
-    archive_fpath = os.path.join(mods_archives_dir_path, archive_fname)
     # remove extention from the archive name
     archive_fname_no_ext = os.path.splitext(archive_fname)[0]
 
@@ -306,14 +330,25 @@ def extract_mod_to_extracted_mods_dir(
     patoolib.extract_archive(archive_fpath, outdir=temp_dir)
 
     # Step 5: Identify mod structure and handle accordingly
-    archive_file_and_dir_names = os.listdir(temp_dir)
+    files_and_folders_in_temp = os.listdir(temp_dir)
+    if len(files_and_folders_in_temp) == 1:
+        kname = files_and_folders_in_temp[0]
+        kpath = os.path.join(temp_dir, kname)
+        if os.path.isdir(kpath):
+            # we have a single folder in the temp dir
+            unarchived_dpath = kpath
+        else:
+            unarchived_dpath = temp_dir
+    else:
+        unarchived_dpath = temp_dir
+    archive_file_and_dir_names = os.listdir(unarchived_dpath)
     archive_tp2_fnames = [
         f for f in archive_file_and_dir_names if f.endswith(".tp2")
     ]
     archive_dnames = [
         f
         for f in archive_file_and_dir_names
-        if os.path.isdir(os.path.join(temp_dir, f))
+        if os.path.isdir(os.path.join(unarchived_dpath, f))
     ]
     mod_structure_type = None
     primary_mod_temp_dpath = ""
@@ -328,8 +363,10 @@ def extract_mod_to_extracted_mods_dir(
     if len(archive_dnames) == 1:
         # we have a single folder in the archive...
         mod_dname = archive_dnames[0]
-        mod_dpath = os.path.join(temp_dir, mod_dname)
-        tp2_fnames = [f for f in os.listdir(mod_dpath) if f.endswith(".tp2")]
+        mod_dpath = os.path.join(unarchived_dpath, mod_dname)
+        tp2_fnames = [
+            f for f in os.listdir(mod_dpath)
+            if f.lower().endswith(".tp2")]
         if len(tp2_fnames) > 0:
             # ... and it contains at least one .tp2 file!
             mod_structure_type = ExtractionType.TYPE_A
@@ -354,7 +391,7 @@ def extract_mod_to_extracted_mods_dir(
                     extracted_mods_dir_path, mod_dname
                 )
                 res = _get_tp2_fpaths(
-                    temp_dir,
+                    unarchived_dpath,
                     extracted_mods_dir_path,
                     mod_name,
                     archive_tp2_fnames,
@@ -366,19 +403,19 @@ def extract_mod_to_extracted_mods_dir(
                 # no .tp2 files in the unarchived dir either :(
                 raise IllformedModArchiveError(
                     "Unable to locate .tp2 file in unarchived mod folder "
-                    "'{mod_dname}'"
+                    f"'{unarchived_dpath}'"
                 )
     elif len(archive_dnames) == 0:
         # we have no folders in the archive...
         if len(archive_tp2_fnames) > 0:
             # ... but there are .tp2 files directly in the unarchived dir!
             mod_structure_type = ExtractionType.TYPE_B
-            primary_mod_temp_dpath = temp_dir
+            primary_mod_temp_dpath = unarchived_dpath
             primary_mod_dpath = os.path.join(
                 extracted_mods_dir_path, archive_fname_no_ext
             )
             res = _get_tp2_fpaths(
-                temp_dir, primary_mod_dpath, mod_name, archive_tp2_fnames
+                unarchived_dpath, primary_mod_dpath, mod_name, archive_tp2_fnames
             )
             tp2_temp_fpath, tp2_fpath = res[:2]
             additional_tp2_temp_fpaths = res[2]
@@ -387,19 +424,19 @@ def extract_mod_to_extracted_mods_dir(
             # ... and no .tp2 files directly in the unarchived dir :(
             raise IllformedModArchiveError(
                 "Unable to locate any folders or .tp2 files in unarchived "
-                "mod archive '{archive_fpath}'"
+                f"mod archive '{unarchived_dpath}'"
             )
     else:
         # we have more than one folder in the archive...
         if len(archive_tp2_fnames) > 0:
             # ... but also tp2 files directly in the unarchived dir!
             mod_structure_type = ExtractionType.TYPE_E
-            primary_mod_temp_dpath = temp_dir
+            primary_mod_temp_dpath = unarchived_dpath
             primary_mod_dpath = os.path.join(
                 extracted_mods_dir_path, archive_fname_no_ext
             )
             res = _get_tp2_fpaths(
-                temp_dir, primary_mod_dpath, mod_name, archive_tp2_fnames
+                unarchived_dpath, primary_mod_dpath, mod_name, archive_tp2_fnames
             )
             tp2_temp_fpath, tp2_fpath = res[:2]
             additional_tp2_temp_fpaths = res[2]
@@ -412,14 +449,14 @@ def extract_mod_to_extracted_mods_dir(
                 for f in archive_dnames
                 if any(
                     f.endswith(".tp2")
-                    for f in os.listdir(os.path.join(temp_dir, f))
+                    for f in os.listdir(os.path.join(unarchived_dpath, f))
                 )
             ]
             if len(mod_folder_candidates) == 0:
                 # and also no .tp2 files in any of the folders :(
                 raise IllformedModArchiveError(
-                    f"Unable to locate any mod folders with .tp2 files in "
-                    f"unarchived mod archive '{archive_fpath}'"
+                    "Unable to locate any mod folders with .tp2 files in "
+                    f"unarchived mod archive '{unarchived_dpath}'"
                 )
             # out of all folders containing a tp2 file, pick the folder most
             # closely named to mod_name as the primary mod
@@ -434,12 +471,12 @@ def extract_mod_to_extracted_mods_dir(
                 additional_mod_dnames = [
                     f for f in archive_dnames if f != primary_mod_dname
                 ]
-            primary_mod_temp_dpath = os.path.join(temp_dir, primary_mod_dname)
+            primary_mod_temp_dpath = os.path.join(unarchived_dpath, primary_mod_dname)
             primary_mod_dpath = os.path.join(
                 extracted_mods_dir_path, primary_mod_dname
             )
             additional_mod_temp_dpaths = [
-                os.path.join(temp_dir, f) for f in additional_mod_dnames
+                os.path.join(unarchived_dpath, f) for f in additional_mod_dnames
             ]
             additional_mod_dpaths = [
                 os.path.join(extracted_mods_dir_path, f)

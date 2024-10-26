@@ -52,6 +52,9 @@ from .weidu_util import (
     get_mod_info_from_weidu_log,
     update_weidu_conf,
 )
+from .parsing import (
+    UNVERSIONED_MOD_MARKER,
+)
 
 
 class InstallationStatus(Enum):
@@ -297,9 +300,12 @@ def mod_is_installed_identically(
     desired_comp_list = _convert_components_dicts_list_to_lists_list(
         desired_components
     )
+    version_match = mod_installation["version"] == mod_version
+    if mod_installation["version"] == UNVERSIONED_MOD_MARKER:
+        version_match = True
     return (
         mod_installation["mod"] == mod_name
-        and mod_installation["version"] == mod_version
+        and version_match
         and set(installed_comp_list) == set(desired_comp_list)
     )
 
@@ -362,12 +368,19 @@ def print_run_config_info_box(runcfg: dict, console: Console) -> None:
         style=tcolor,
         no_wrap=True,
     )
+    table1.add_column(
+        "Preder zipped mods",
+        justify="center",
+        style=tcolor,
+        no_wrap=True,
+    )
     table1.add_row(
         f"{runcfg.get('build_name')}",
         f"{runcfg.get('game')}",
         f"{runcfg.get('game_install_dir')}",
         f"{runcfg.get('lang')}",
         f"{runcfg.get('force_lang_in_weidu_conf')}",
+        f"{runcfg.get('prefer_zipped_mods')}",
     )
 
     table2 = Table()
@@ -547,6 +560,9 @@ def run_build(
         force_lang_in_weidu_conf = False
     run_config["force_lang_in_weidu_conf"] = force_lang_in_weidu_conf
     pause_every_x_mods = config.get("pause_every_x_mods")
+    run_config["pause_every_x_mods"] = pause_every_x_mods
+    prefer_zipped_mods = config.get("prefer_zipped_mods", False)
+    run_config["prefer_zipped_mods"] = prefer_zipped_mods
     try:
         mods = build["mods"]
     except KeyError as e:
@@ -602,7 +618,6 @@ def run_build(
         components = mod["components"]
         install_list = mod["install_list"]
         prompt_for_manual_install = mod.get("prompt_for_manual_install", False)
-        prefer_zipped_mods = mod.get("prefer_zipped_mods", False)
 
         if prompt_for_manual_install:
             user_input = "blah"
@@ -645,6 +660,7 @@ def run_build(
         mod_tp2_path = None
         from_archive = False
         if prefer_zipped_mods:
+            oper_print("Zipped mods preferred, so...")
             if not zipped_mods_dir:
                 msg = (
                     "prefer_zipped_mods set to True, but no zipped mods "
@@ -654,15 +670,8 @@ def run_build(
                 warnings.warn(msg, stacklevel=2)
                 note_print(msg)
             else:
-                mod_zip_path = fuzzy_find(
-                    zipped_mods_dir, mod_name, [".zip", "tar.gz", "rar"]
-                )
-                oper_print(
-                    f"Extracting {mod_zip_path} into {extracted_mods_dir}..."
-                )
-                make_all_files_in_dir_writable(extracted_mods_dir)
                 res = extract_mod_to_extracted_mods_dir(
-                    mod_zip_path, extracted_mods_dir, mod_name
+                    zipped_mods_dir, extracted_mods_dir, mod_name
                 )
                 oper_print("Extraction results:")
                 rprint(res)
@@ -676,7 +685,8 @@ def run_build(
                     # in both cases we copy a single mod dir with the all
                     # possible tp2 files insides of it, so guessting the
                     # most appropriate tp2 file from it is enough
-                    mod_tp2_path = tp2_fpath_from_mod_dpath(mod_dir, mod_name)
+                    mod_tp2_path = tp2_fpath_from_mod_dpath(
+                        target_mod_dir, mod_name)
                 elif ex_type == ExtractionType.TYPE_C:
                     # in this case we have a single tp2 file in the root
                     # of the extracted mod dir, so we have to copy it
@@ -690,12 +700,14 @@ def run_build(
                     # file/s directly in the unpacked archive itself, so the
                     # unpacked archive was treated as a single mode dir, and
                     # we can guess the tp2 file from it
-                    mod_tp2_path = tp2_fpath_from_mod_dpath(mod_dir, mod_name)
+                    mod_tp2_path = tp2_fpath_from_mod_dpath(
+                        target_mod_dir, mod_name)
                 elif ex_type == ExtractionType.TYPE_D:
                     # here we have more than one mod folder, but no tp2 files
                     # in the root of the unpacked archive, so we have to copy
                     # additional mod folders
-                    mod_tp2_path = tp2_fpath_from_mod_dpath(mod_dir, mod_name)
+                    mod_tp2_path = tp2_fpath_from_mod_dpath(
+                        target_mod_dir, mod_name)
                     for mod_folder in res.additional_mod_folder_paths:
                         mod_folder_name = dir_name_from_dir_path(mod_folder)
                         target_mod_folder = os.path.join(

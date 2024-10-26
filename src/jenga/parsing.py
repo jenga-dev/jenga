@@ -4,6 +4,9 @@ import re
 from typing import Dict
 
 
+UNVERSIONED_MOD_MARKER = "UNVERSIONED"
+
+
 def weidu_log_to_build_dict(
     weidu_log_path: str,
 ) -> dict:
@@ -36,14 +39,12 @@ def weidu_log_to_build_dict(
                 r"~([^/]+)/[^~]+~ #(\d+) #(\d+) // (.+): (.+)",
                 line,
             )
-
             if match:
                 mod_name = match.group(1)
                 language_int = match.group(2)
                 component_number = match.group(3)
                 component_description = match.group(4)
                 version = match.group(5)
-
                 if mod_name not in mods_info:
                     mods_info[mod_name] = {
                         "mod": mod_name,
@@ -52,7 +53,32 @@ def weidu_log_to_build_dict(
                         "install_list": [],
                         "components": [],
                     }
+                mods_info[mod_name]["install_list"].append(component_number)
+                mods_info[mod_name]["components"].append(
+                    {
+                        "number": component_number,
+                        "description": component_description,
+                    }
+                )
+                continue
 
+            match2 = re.match(
+                r"~([^/]+)/[^~]+~ #(\d+) #(\d+) // (.+)",
+                line,
+            )
+            if match2:
+                mod_name = match2.group(1)
+                language_int = match2.group(2)
+                component_number = match2.group(3)
+                component_description = match2.group(4)
+                if mod_name not in mods_info:
+                    mods_info[mod_name] = {
+                        "mod": mod_name,
+                        "version": UNVERSIONED_MOD_MARKER,
+                        "language_int": language_int,
+                        "install_list": [],
+                        "components": [],
+                    }
                 mods_info[mod_name]["install_list"].append(component_number)
                 mods_info[mod_name]["components"].append(
                     {

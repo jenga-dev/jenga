@@ -160,25 +160,78 @@ class EetEndPdialogPartialLinesFix(JengaFix):
         fix_pdialog_files_in_directory(run_config["game_dir"])
 
 
+# ===== Crucible Fixes =====
+
+
+class CrucibleMihModConflictIgnore(JengaFix):
+    """Bypass the Crucible mod conflict with MIH_EQ.
+
+    Edits the Crucible tp2 file to remove line that raise mod conflict
+    and terminate on an existing installation of MIH_EQ (Made in Heaven:
+    Encounters & Quests).
+    """
+
+    def __init__(self, mod_name):
+        super().__init__(mod_name)
+        self.fix_name = "CrucibleMihModConflictIgnore"
+
+    LINE_TO_DELETE = (
+        "REQUIRE_PREDICATE !FILE_EXISTS ~mih_eq/setup-mih_eq.tp2~ @3002")
+    SEARCH_TOKEN = "setup-mih_eq.tp2"
+
+    def apply(
+        self,
+        mod_dir: str,
+        mod_tp2_path: str,
+        jenga_config: Birch,
+        run_config: dict,
+    ) -> None:
+        # Read the tp2 file in mod_tp2_path and remove all lines containing
+        # the SEARCH_TOKEN
+        with open(mod_tp2_path, "r") as f:
+            lines = f.readlines()
+        with open(mod_tp2_path, "w") as f:
+            for line in lines:
+                if self.SEARCH_TOKEN not in line:
+                    f.write(line)
+
+
+# ===== Mod Aliases Registry =====
+
 # Mod Names
 AFH = "AnotherFineHell"
-AFH_NAMES = [
-    AFH,
-    "C#ANOTHERFINEHELL",
-]
 EET_END = "EET_END"
-EET_END_NAMES = [
-    EET_END,
-    "EETEND",
-]
+LUCY = "LUCY"
+DC = "DC"
+CRUCIBLE = "CRUCIBLE"
 
 
 # Mod Alias Registry
-MOD_ALIAS_REGISTRY: Dict[str, str] = {}
-for n in AFH_NAMES:
-    MOD_ALIAS_REGISTRY[n.lower()] = AFH.lower()
-for n in EET_END_NAMES:
-    MOD_ALIAS_REGISTRY[n.lower()] = EET_END.lower()
+ALIAS_TO_MOD_REGISTRY: Dict[str, str] = {
+    # AFH ALIASES
+    AFH.lower(): AFH.lower(),
+    "C#ANOTHERFINEHELL".lower(): AFH.lower(),
+    # LUCY ALIASES
+    LUCY.lower(): LUCY.lower(),
+    "lucy-the-wyvern".lower(): LUCY.lower(),
+    # EET_END ALIASES
+    EET_END.lower(): EET_END.lower(),
+    "EETEND".lower(): EET_END.lower(),
+    # DC ALIASES
+    DC.lower(): DC.lower(),
+    "DungeonCrawl".lower(): DC.lower(),
+    # CRUCIBLE ALIASES
+    CRUCIBLE.lower(): CRUCIBLE.lower(),
+}
+
+
+# build the reverse alias registry
+MOD_TO_ALIAS_LIST_REGISTRY: Dict[str, List[str]] = {}
+for alias, mod in ALIAS_TO_MOD_REGISTRY.items():
+    if mod not in MOD_TO_ALIAS_LIST_REGISTRY:
+        MOD_TO_ALIAS_LIST_REGISTRY[mod] = [alias]
+    else:
+        MOD_TO_ALIAS_LIST_REGISTRY[mod].append(alias)
 
 
 PRE_FIXES_REGISTRY: Dict[str, Sequence[JengaFix]] = {
@@ -187,6 +240,9 @@ PRE_FIXES_REGISTRY: Dict[str, Sequence[JengaFix]] = {
     # ],
     EET_END.lower(): [
         EetEndPdialogPartialLinesFix(EET_END),
+    ],
+    CRUCIBLE.lower(): [
+        CrucibleMihModConflictIgnore(CRUCIBLE),
     ],
 }
 
@@ -210,6 +266,6 @@ def get_fixes_for_mod(mod_name: str, prefix: bool) -> Sequence[JengaFix]:
         A list of any fixes to apply before/after the specified mod.
 
     """
-    uniform_name = MOD_ALIAS_REGISTRY.get(mod_name.lower(), mod_name.lower())
+    uniform_name = ALIAS_TO_MOD_REGISTRY.get(mod_name.lower(), mod_name.lower())
     registry = PRE_FIXES_REGISTRY if prefix else POST_FIXES_REGISTRY
     return registry.get(uniform_name, [])
