@@ -8,8 +8,8 @@ from typing import Dict, List, Sequence
 # 3rd party imports
 from birch import Birch
 
-
 # ===== Base Fix Classes =====
+
 
 class JengaPrePostFix:
     """A runnable object that fixes a specific mod issue during a Jenga build.
@@ -66,6 +66,7 @@ class JengaCmdFix:
     ----------
     fix_name : str
         The name of the fix.
+
     """
 
     def __init__(self, mod_name):
@@ -93,16 +94,19 @@ class JengaCmdFix:
         -------
         List[str]
             The altered command.
+
         """
         raise NotImplementeodError("Fixes must implement the apply method.")
 
 
 # ===== EET Fixes =====
 
+
 class EetAddBg1PathCmdFix(JengaCmdFix):
     """Add the BG1 path to the EET install command.
 
     This fix is necessary for EET installations to work correctly.
+
     """
 
     def __init__(self, mod_name):
@@ -129,7 +133,9 @@ class EetAddBg1PathCmdFix(JengaCmdFix):
         cmd.append(f"{bg1_path}")
         return cmd
 
+
 # ===== AnotherFineHell Fixes =====
+
 
 class AnotherFineHellAfhvisFix(JengaPrePostFix):
     __doc__ = (
@@ -173,6 +179,7 @@ class AnotherFineHellAfhvisFix(JengaPrePostFix):
 
 # ===== Crucible Fixes =====
 
+
 class CrucibleMihModConflictIgnore(JengaPrePostFix):
     """Bypass the Crucible mod conflict with MIH_EQ.
 
@@ -209,6 +216,7 @@ class CrucibleMihModConflictIgnore(JengaPrePostFix):
 
 
 # ===== EET_END Fixes =====
+
 
 def fix_pdialog_files_in_directory(directory_path: str) -> None:
     """Fix pdialog.2da files by removing lines with only a single word.
@@ -377,5 +385,6 @@ def get_cmd_fixes_for_mod(mod_name: str) -> Sequence[JengaCmdFix]:
 
     """
     uniform_name = ALIAS_TO_MOD_REGISTRY.get(
-        mod_name.lower(), mod_name.lower())
+        mod_name.lower(), mod_name.lower()
+    )
     return CMD_FIXES_REGISTRY.get(uniform_name, [])

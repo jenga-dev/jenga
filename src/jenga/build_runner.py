@@ -25,8 +25,8 @@ from .config import (
 )
 from .errors import ConfigurationError
 from .fixes import (
-    get_prepost_fixes_for_mod,
     get_cmd_fixes_for_mod,
+    get_prepost_fixes_for_mod,
 )
 from .parsing import (
     UNVERSIONED_MOD_MARKER,
