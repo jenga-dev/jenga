@@ -9,7 +9,9 @@ from typing import Dict, List, Sequence
 from birch import Birch
 
 
-class JengaFix:
+# ===== Base Fix Classes =====
+
+class JengaPrePostFix:
     """A runnable object that fixes a specific mod issue during a Jenga build.
 
     Parameters
@@ -26,7 +28,7 @@ class JengaFix:
 
     def __init__(self, mod_name):
         self.mod_name = mod_name
-        self.fix_name = "JengaFix"
+        self.fix_name = "JengaPrePostFix"
 
     def apply(
         self,
@@ -49,15 +51,89 @@ class JengaFix:
             The run configuration.
 
         """
-        raise NotImplementedError("Fixes must implement the run method.")
+        raise NotImplementeodError("Fixes must implement the apply method.")
 
+
+class JengaCmdFix:
+    """A runnable object that alters a mod install command to fix an issue.
+
+    Parameters
+    ----------
+    mod_name : str
+        The name of the mod that the fix is for.
+
+    Attributes
+    ----------
+    fix_name : str
+        The name of the fix.
+    """
+
+    def __init__(self, mod_name):
+        self.mod_name = mod_name
+        self.fix_name = "JengaPrePostFix"
+
+    def apply(
+        self,
+        cmd: List[str],
+        jenga_config: Birch,
+        run_config: dict,
+    ) -> List[str]:
+        """Run the fix.
+
+        Parameters
+        ----------
+        cmd : List[str]
+            The command to alter.
+        jenga_config : Birch
+            The Jenga configuration.
+        run_config : dict
+            The run configuration.
+
+        Returns
+        -------
+        List[str]
+            The altered command.
+        """
+        raise NotImplementeodError("Fixes must implement the apply method.")
+
+
+# ===== EET Fixes =====
+
+class EetAddBg1PathCmdFix(JengaCmdFix):
+    """Add the BG1 path to the EET install command.
+
+    This fix is necessary for EET installations to work correctly.
+    """
+
+    def __init__(self, mod_name):
+        super().__init__(mod_name)
+        self.fix_name = "EetAddBg1PathCmdFix"
+
+    def apply(
+        self,
+        cmd: List[str],
+        jenga_config: Birch,
+        run_config: dict,
+    ) -> List[str]:
+        # Add the BG1 path to the command
+        try:
+            bg1_path = jenga_config["BGEE_DIR_PATH"]
+        except KeyError:
+            raise ValueError(
+                "BGEE_DIR_PATH not found in the Jenga config."
+                "It must be set to the path of the BG1 directory in order for"
+                " the EET installation to work correctly."
+            )
+        cmd.append("--args-list")
+        cmd.append("sp")
+        cmd.append(f"{bg1_path}")
+        return cmd
 
 # ===== AnotherFineHell Fixes =====
 
-
-class AnotherFineHellAfhvisFix(JengaFix):
+class AnotherFineHellAfhvisFix(JengaPrePostFix):
     __doc__ = (
-        JengaFix.__doc__
+        JengaPrePostFix.__doc__
         + """
     Fixes an issue for AnotherFineHell on MacOS where installation fails du to
     ERROR: error loading [c#anotherfinehell/scripts/c#afhvis.baf]
@@ -95,8 +171,44 @@ class AnotherFineHellAfhvisFix(JengaFix):
                     f.write(line)
 
 
-# ===== EET_END Fixes =====
+# ===== Crucible Fixes =====
 
+class CrucibleMihModConflictIgnore(JengaPrePostFix):
+    """Bypass the Crucible mod conflict with MIH_EQ.
+
+    Edits the Crucible tp2 file to remove line that raise mod conflict and
+    terminate on an existing installation of MIH_EQ (Made in Heaven: Encounters
+    & Quests).
+
+    """
+
+    def __init__(self, mod_name):
+        super().__init__(mod_name)
+        self.fix_name = "CrucibleMihModConflictIgnore"
+
+    LINE_TO_DELETE = (
+        "REQUIRE_PREDICATE !FILE_EXISTS ~mih_eq/setup-mih_eq.tp2~ @3002"
+    )
+    SEARCH_TOKEN = "setup-mih_eq.tp2"
+
+    def apply(
+        self,
+        mod_dir: str,
+        mod_tp2_path: str,
+        jenga_config: Birch,
+        run_config: dict,
+    ) -> None:
+        # Read the tp2 file in mod_tp2_path and remove all lines containing
+        # the SEARCH_TOKEN
+        with open(mod_tp2_path, "r") as f:
+            lines = f.readlines()
+        with open(mod_tp2_path, "w") as f:
+            for line in lines:
+                if self.SEARCH_TOKEN not in line:
+                    f.write(line)
+
+
+# ===== EET_END Fixes =====
 
 def fix_pdialog_files_in_directory(directory_path: str) -> None:
     """Fix pdialog.2da files by removing lines with only a single word.
@@ -135,9 +247,9 @@ def fix_pdialog_file(file_path: str) -> None:
         file.writelines(fixed_lines)
 
 
-class EetEndPdialogPartialLinesFix(JengaFix):
+class EetEndPdialogPartialLinesFix(JengaPrePostFix):
     __doc__ = (
-        JengaFix.__doc__
+        JengaPrePostFix.__doc__
         + """
     Fixes an issue for EET_END where installation fails due to
     badly formatted lines in pdialog.2da, probably caused by Glam's NPC Pack.
@@ -160,47 +272,10 @@ class EetEndPdialogPartialLinesFix(JengaFix):
         fix_pdialog_files_in_directory(run_config["game_dir"])
 
 
-# ===== Crucible Fixes =====
-
-
-class CrucibleMihModConflictIgnore(JengaFix):
-    """Bypass the Crucible mod conflict with MIH_EQ.
-
-    Edits the Crucible tp2 file to remove line that raise mod conflict and
-    terminate on an existing installation of MIH_EQ (Made in Heaven: Encounters
-    & Quests).
-
-    """
-
-    def __init__(self, mod_name):
-        super().__init__(mod_name)
-        self.fix_name = "CrucibleMihModConflictIgnore"
-
-    LINE_TO_DELETE = (
-        "REQUIRE_PREDICATE !FILE_EXISTS ~mih_eq/setup-mih_eq.tp2~ @3002"
-    )
-    SEARCH_TOKEN = "setup-mih_eq.tp2"
-
-    def apply(
-        self,
-        mod_dir: str,
-        mod_tp2_path: str,
-        jenga_config: Birch,
-        run_config: dict,
-    ) -> None:
-        # Read the tp2 file in mod_tp2_path and remove all lines containing
-        # the SEARCH_TOKEN
-        with open(mod_tp2_path, "r") as f:
-            lines = f.readlines()
-        with open(mod_tp2_path, "w") as f:
-            for line in lines:
-                if self.SEARCH_TOKEN not in line:
-                    f.write(line)
-
-
 # ===== Mod Aliases Registry =====
 
 # Mod Names
+EET = "EET"
 AFH = "AnotherFineHell"
 EET_END = "EET_END"
 LUCY = "LUCY"
@@ -210,20 +285,22 @@ CRUCIBLE = "CRUCIBLE"
 
 # Mod Alias Registry
 ALIAS_TO_MOD_REGISTRY: Dict[str, str] = {
+    # EET ALIASES
+    EET.lower(): EET.lower(),
     # AFH ALIASES
     AFH.lower(): AFH.lower(),
     "C#ANOTHERFINEHELL".lower(): AFH.lower(),
     # LUCY ALIASES
     LUCY.lower(): LUCY.lower(),
     "lucy-the-wyvern".lower(): LUCY.lower(),
-    # EET_END ALIASES
-    EET_END.lower(): EET_END.lower(),
-    "EETEND".lower(): EET_END.lower(),
     # DC ALIASES
     DC.lower(): DC.lower(),
     "DungeonCrawl".lower(): DC.lower(),
     # CRUCIBLE ALIASES
     CRUCIBLE.lower(): CRUCIBLE.lower(),
+    # EET_END ALIASES
+    EET_END.lower(): EET_END.lower(),
+    "EETEND".lower(): EET_END.lower(),
 }
 
 
@@ -236,7 +313,7 @@ for alias, mod in ALIAS_TO_MOD_REGISTRY.items():
         MOD_TO_ALIAS_LIST_REGISTRY[mod].append(alias)
 
 
-PRE_FIXES_REGISTRY: Dict[str, Sequence[JengaFix]] = {
+PRE_FIXES_REGISTRY: Dict[str, Sequence[JengaPrePostFix]] = {
     # AFH.lower(): [
     #     AnotherFineHellAfhvisFix(AFH),
     # ],
@@ -249,10 +326,20 @@ PRE_FIXES_REGISTRY: Dict[str, Sequence[JengaFix]] = {
 }
 
 
-POST_FIXES_REGISTRY: Dict[str, Sequence[JengaFix]] = {}
+CMD_FIXES_REGISTRY: Dict[str, Sequence[JengaCmdFix]] = {
+    EET.lower(): [
+        EetAddBg1PathCmdFix(EET),
+    ],
+}
 
 
-def get_fixes_for_mod(mod_name: str, prefix: bool) -> Sequence[JengaFix]:
+POST_FIXES_REGISTRY: Dict[str, Sequence[JengaPrePostFix]] = {}
+
+
+def get_prepost_fixes_for_mod(
+    mod_name: str,
+    prefix: bool,
+) -> Sequence[JengaPrePostFix]:
     """Get any fixes for the specified mod.
 
     Parameters
@@ -264,7 +351,7 @@ def get_fixes_for_mod(mod_name: str, prefix: bool) -> Sequence[JengaFix]:
 
     Returns
     -------
-    Sequence[JengaFix]
+    Sequence[JengaPrePostFix]
         A list of any fixes to apply before/after the specified mod.
 
     """
@@ -273,3 +360,22 @@ def get_fixes_for_mod(mod_name: str, prefix: bool) -> Sequence[JengaFix]:
     )
     registry = PRE_FIXES_REGISTRY if prefix else POST_FIXES_REGISTRY
     return registry.get(uniform_name, [])
+
+
+def get_cmd_fixes_for_mod(mod_name: str) -> Sequence[JengaCmdFix]:
+    """Get any command fixes for the specified mod.
+
+    Parameters
+    ----------
+    mod_name : str
+        The name of the mod.
+
+    Returns
+    -------
+    Sequence[JengaCmdFix]
+        A list of any command fixes to apply for the specified mod.
+
+    """
+    uniform_name = ALIAS_TO_MOD_REGISTRY.get(
+        mod_name.lower(), mod_name.lower())
+    return CMD_FIXES_REGISTRY.get(uniform_name, [])

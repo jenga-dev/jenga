@@ -25,7 +25,8 @@ from .config import (
 )
 from .errors import ConfigurationError
 from .fixes import (
-    get_fixes_for_mod,
+    get_prepost_fixes_for_mod,
+    get_cmd_fixes_for_mod,
 )
 from .parsing import (
     UNVERSIONED_MOD_MARKER,
@@ -66,6 +67,8 @@ class InstallationStatus(Enum):
 
 
 def execute_mod_installation(
+    mod_name: str,
+    run_config: dict,
     weidu_exec_path: str,
     mod_dir_path: str,
     mod_tp2_path: str,
@@ -79,6 +82,10 @@ def execute_mod_installation(
 
     Parameters
     ----------
+    mod_name : str
+        The name of the mod.
+    run_config : dict
+        The run configuration.
     weidu_exec_path : str
         The path to the WeiDU executable.
     mod_dir_path : str
@@ -124,6 +131,17 @@ def execute_mod_installation(
         "--use-lang",
         lang,
     ]
+    oper_print(f"Searching for cmd fixes for mod {mod_name}...")
+    cmd_fixes = get_cmd_fixes_for_mod(mod_name)
+    if cmd_fixes:
+        oper_print(f"Applying cmd fixes for mod {mod_name}...")
+        for fix in cmd_fixes:
+            command = fix.apply(
+                cmd=command,
+                jenga_config=CFG,
+                run_config=run_config,
+            )
+            sccs_print(f"Applied {fix.fix_name}.")
     oper_print(">>> Running command:")
     oper_print(" ".join(command))
     proc = subprocess.Popen(
@@ -742,7 +760,7 @@ def run_build(
 
         # Apply any pre-fixes for the mod
         oper_print(f"Looking for pre-fixes for {mod_name}...")
-        pre_fixes = get_fixes_for_mod(mod_name, prefix=True)
+        pre_fixes = get_prepost_fixes_for_mod(mod_name, prefix=True)
         if pre_fixes:
             oper_print(f"Applying pre-fixes for {mod_name}...")
             for fix in pre_fixes:
@@ -756,6 +774,8 @@ def run_build(
 
         oper_print(f"Installing {mod_name}...")
         status = execute_mod_installation(
+            mod_name,
+            run_config,
             weidu_exec_path,
             target_mod_dir,
             mod_tp2_path,
@@ -791,7 +811,7 @@ def run_build(
 
         # Apply any post-fixes for the mod
         oper_print(f"Looking for post-fixes for {mod_name}...")
-        post_fixes = get_fixes_for_mod(mod_name, prefix=False)
+        post_fixes = get_prepost_fixes_for_mod(mod_name, prefix=False)
         if post_fixes:
             oper_print(f"Applying post-fixes for {mod_name}...")
             for fix in post_fixes:

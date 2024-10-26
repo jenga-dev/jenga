@@ -25,7 +25,7 @@ General Input Options:
   --force-uninstall-list        X Y... uninstalls component number X, Y... (cumulative)
   --quick-menu  X installs the quick menu selection X
 
- --process-script      X process installation script X
+  --process-script      X process installation script X
   --skip-at-view        kills AT_* ~VIEW this~
   --quick-log   Doesn't print the name of components in weidu.log (much faster)
   --safe-exit   Prints weidu.log after starting the installation of every component
