@@ -2,7 +2,7 @@
 
 # stdlib imports
 import os
-from typing import Union, Optional
+from typing import Optional, Union
 
 # 3rd party imports
 import birch

@@ -16,9 +16,9 @@ from thefuzz import fuzz, process
 from .config import (
     CfgKey,
     demand_extracted_mod_cache_dir_path,
-    get_game_dir,
     demand_game_dir_path,
     demand_zipped_mod_cache_dir_path,
+    get_game_dir,
 )
 from .errors import (
     IllformedModArchiveError,
