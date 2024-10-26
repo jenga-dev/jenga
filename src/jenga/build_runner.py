@@ -738,6 +738,13 @@ def run_build(
                         safe_copy_dir_to_game_dir(
                             mod_folder, target_mod_folder
                         )
+                        additional_fpaths = res.additional_file_paths
+                        for fpath in additional_fpaths:
+                            f_name = os.path.basename(fpath)
+                            target_fpath = os.path.join(
+                                game_install_dir, f_name
+                            )
+                            shutil.copy(fpath, target_fpath)
 
         if not from_archive:
             # Find the mod directory

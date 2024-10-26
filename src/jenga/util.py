@@ -192,6 +192,7 @@ class ExtractionResult:
     tp2_file_path: str
     additional_mod_folder_paths: List[str]
     additional_tp2_file_paths: List[str]
+    additional_file_paths: List[str]
 
 
 def _get_tp2_fpaths(
@@ -351,6 +352,9 @@ def extract_mod_to_extracted_mods_dir(
     archive_tp2_fnames = [
         f for f in archive_file_and_dir_names if f.endswith(".tp2")
     ]
+    archive_command_fnames = [
+        f for f in archive_file_and_dir_names if f.endswith(".command")
+    ]
     archive_dnames = [
         f
         for f in archive_file_and_dir_names
@@ -365,6 +369,8 @@ def extract_mod_to_extracted_mods_dir(
     additional_mod_dpaths = []
     additional_tp2_temp_fpaths = []
     additional_tp2_fpaths = []
+    additional_temp_fpaths = []
+    additional_fpaths = []
 
     if len(archive_dnames) == 1:
         # we have a single folder in the archive...
@@ -509,6 +515,15 @@ def extract_mod_to_extracted_mods_dir(
             tp2_temp_fpath, tp2_fpath = res[:2]
             additional_tp2_temp_fpaths = res[2]
             additional_tp2_fpaths = res[3]
+            if len(archive_command_fnames) > 0:
+                additional_temp_fpaths = [
+                    os.path.join(unarchived_dpath, f)
+                    for f in archive_command_fnames
+                ]
+                additional_fpaths = [
+                    os.path.join(extracted_mods_dir_path, f)
+                    for f in archive_command_fnames
+                ]
 
     # Step 6: Move to extracted_mods_dir_path
     # 6.1: Copy the primary mod folder
@@ -535,6 +550,11 @@ def extract_mod_to_extracted_mods_dir(
         if os.path.exists(fpath):
             os.remove(fpath)
         shutil.copy(temp_fpath, fpath)
+    # 6.5: Copy additional files
+    for temp_fpath, fpath in zip(additional_temp_fpaths, additional_fpaths):
+        if os.path.exists(fpath):
+            os.remove(fpath)
+        shutil.copy(temp_fpath, fpath)
 
     # Step 7: Clean up temporary directory
     shutil.rmtree(temp_dir)
@@ -545,6 +565,7 @@ def extract_mod_to_extracted_mods_dir(
         tp2_file_path=tp2_fpath,
         additional_mod_folder_paths=additional_mod_dpaths,
         additional_tp2_file_paths=additional_tp2_fpaths,
+        additional_file_paths=additional_fpaths,
     )
 
 
