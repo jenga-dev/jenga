@@ -152,25 +152,31 @@ def demand_valid_dir_path_config_val(
     -------
     str
         The valid directory path.
+
     """
     if dir_path is None:
         raise ValueError(f"{config_key} is not set.")
     if not os.path.exists(dir_path):
         raise FileNotFoundError(
-            f"{config_key} set to {dir_path}, which does not exist.")
+            f"{config_key} set to {dir_path}, which does not exist."
+        )
     if os.path.isfile(dir_path):
         raise IsADirectoryError(
             f"{config_key} set to {dir_path}, which is a file instead "
-            "of a directory.")
+            "of a directory."
+        )
     return dir_path
 
 
-def demand_zipped_mod_cache_dir_path() -> str :
+def demand_zipped_mod_cache_dir_path() -> str:
     """Get the zipped mod cache directory path."""
     return demand_valid_dir_path_config_val(
-        ZIPPED_MOD_CACHE_DIR_PATH, CfgKey.ZIPPED_MOD_CACHE_DIR_PATH)
+        ZIPPED_MOD_CACHE_DIR_PATH, CfgKey.ZIPPED_MOD_CACHE_DIR_PATH
+    )
+
 
 def demand_extracted_mod_cache_dir_path() -> str:
     """Get the extracted mod cache directory path."""
     return demand_valid_dir_path_config_val(
-        EXTRACTED_MOD_CACHE_DIR_PATH, CfgKey.EXTRACTED_MOD_CACHE_DIR_PATH)
+        EXTRACTED_MOD_CACHE_DIR_PATH, CfgKey.EXTRACTED_MOD_CACHE_DIR_PATH
+    )

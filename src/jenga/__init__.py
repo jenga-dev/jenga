@@ -13,11 +13,11 @@ from .build_runner import (
 from .config import (
     print_config_info_box,
 )
-from .util import (
-    extract_all_archives_in_zipped_mods_dir_to_extracted_mods_dir,
-)
 from .mod_index import (
     populate_mod_index_from_extracted_mods_dir,
+)
+from .util import (
+    extract_all_archives_in_zipped_mods_dir_to_extracted_mods_dir,
 )
 
 __all__ = [  # noqa: F405
