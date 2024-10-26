@@ -432,7 +432,7 @@ def extract_archive_to_extracted_mods_dir(
     # Step 5: Identify mod structure and handle accordingly
     files_and_folders_in_temp = os.listdir(temp_dir)
     files_and_folders_in_temp = [
-        f for f in files_and_folders_in_temp if f != '__MACOSX'
+        f for f in files_and_folders_in_temp if f != "__MACOSX"
     ]
     if len(files_and_folders_in_temp) == 1:
         kname = files_and_folders_in_temp[0]
@@ -831,8 +831,7 @@ def extract_all_zipped_mods_in_dir_to_dir(
             note_print(f"Error extracting {archive}: {e}")
         done += 1
         pct = (done / n) * 100
-        oper_print(
-            f"[{pct:.2f}%] Finished extracting {archive}:\n {res}")
+        oper_print(f"[{pct:.2f}%] Finished extracting {archive}:\n {res}")
 
 
 def extract_all_archives_in_zipped_mods_dir_to_extracted_mods_dir() -> None:
