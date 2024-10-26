@@ -15,15 +15,15 @@ from thefuzz import fuzz, process
 from .errors import (
     IllformedModArchiveError,
 )
+from .fixes import (
+    MOD_TO_ALIAS_LIST_REGISTRY,
+)
 
 # local imports
 from .printing import (
     jprint,
     note_print,
     oper_print,
-)
-from .fixes import (
-    MOD_TO_ALIAS_LIST_REGISTRY,
 )
 
 
@@ -137,18 +137,25 @@ def fuzzy_find(
             for alias in MOD_TO_ALIAS_LIST_REGISTRY[name.lower()]:
                 if alias != name.lower():
                     return fuzzy_find(
-                        directory, alias, file_types, setup_file_search)
+                        directory, alias, file_types, setup_file_search
+                    )
         if setup_file_search and not name.startswith("setup-"):
             setup_prefixed = f"setup-{name.lower()}"
             return fuzzy_find(directory, setup_prefixed, file_types, True)
         # try with mac- prefix for archives and folders:
-        if not setup_file_search and not name.startswith("mac-") and (
-                not name.startswith("osx-")):
+        if (
+            not setup_file_search
+            and not name.startswith("mac-")
+            and (not name.startswith("osx-"))
+        ):
             mac_prefixed = f"mac-{name.lower()}"
             return fuzzy_find(directory, mac_prefixed, file_types, False)
         # try with the osx- prefix for archives and folders:
-        if not setup_file_search and not name.startswith("osx-") and (
-                not name.startswith("mac-")):
+        if (
+            not setup_file_search
+            and not name.startswith("osx-")
+            and (not name.startswith("mac-"))
+        ):
             osx_prefixed = f"osx-{name.lower()}"
             return fuzzy_find(directory, osx_prefixed, file_types, False)
         if setup_file_search:
@@ -235,9 +242,7 @@ def _get_tp2_fpaths(
 
 
 def extract_mod_to_extracted_mods_dir(
-    zipped_mods_dpath: str,
-    extracted_mods_dir_path: str,
-    mod_name: str
+    zipped_mods_dpath: str, extracted_mods_dir_path: str, mod_name: str
 ) -> ExtractionResult:
     """Extract a mod to the extracted mods directory.
 
@@ -296,7 +301,8 @@ def extract_mod_to_extracted_mods_dir(
     # Step 1: Find the best match for the mod archive using fuzzy matching
     oper_print(
         f"Looking for zipped archive for {mod_name} in "
-        "{zipped_mods_dpath}...")
+        "{zipped_mods_dpath}..."
+    )
     archive_fpath = fuzzy_find(
         zipped_mods_dpath, mod_name, [".zip", "tar.gz", "rar"]
     )
@@ -365,8 +371,8 @@ def extract_mod_to_extracted_mods_dir(
         mod_dname = archive_dnames[0]
         mod_dpath = os.path.join(unarchived_dpath, mod_dname)
         tp2_fnames = [
-            f for f in os.listdir(mod_dpath)
-            if f.lower().endswith(".tp2")]
+            f for f in os.listdir(mod_dpath) if f.lower().endswith(".tp2")
+        ]
         if len(tp2_fnames) > 0:
             # ... and it contains at least one .tp2 file!
             mod_structure_type = ExtractionType.TYPE_A
@@ -415,7 +421,10 @@ def extract_mod_to_extracted_mods_dir(
                 extracted_mods_dir_path, archive_fname_no_ext
             )
             res = _get_tp2_fpaths(
-                unarchived_dpath, primary_mod_dpath, mod_name, archive_tp2_fnames
+                unarchived_dpath,
+                primary_mod_dpath,
+                mod_name,
+                archive_tp2_fnames,
             )
             tp2_temp_fpath, tp2_fpath = res[:2]
             additional_tp2_temp_fpaths = res[2]
@@ -436,7 +445,10 @@ def extract_mod_to_extracted_mods_dir(
                 extracted_mods_dir_path, archive_fname_no_ext
             )
             res = _get_tp2_fpaths(
-                unarchived_dpath, primary_mod_dpath, mod_name, archive_tp2_fnames
+                unarchived_dpath,
+                primary_mod_dpath,
+                mod_name,
+                archive_tp2_fnames,
             )
             tp2_temp_fpath, tp2_fpath = res[:2]
             additional_tp2_temp_fpaths = res[2]
@@ -471,12 +483,15 @@ def extract_mod_to_extracted_mods_dir(
                 additional_mod_dnames = [
                     f for f in archive_dnames if f != primary_mod_dname
                 ]
-            primary_mod_temp_dpath = os.path.join(unarchived_dpath, primary_mod_dname)
+            primary_mod_temp_dpath = os.path.join(
+                unarchived_dpath, primary_mod_dname
+            )
             primary_mod_dpath = os.path.join(
                 extracted_mods_dir_path, primary_mod_dname
             )
             additional_mod_temp_dpaths = [
-                os.path.join(unarchived_dpath, f) for f in additional_mod_dnames
+                os.path.join(unarchived_dpath, f)
+                for f in additional_mod_dnames
             ]
             additional_mod_dpaths = [
                 os.path.join(extracted_mods_dir_path, f)

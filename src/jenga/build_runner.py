@@ -27,6 +27,9 @@ from .errors import ConfigurationError
 from .fixes import (
     get_fixes_for_mod,
 )
+from .parsing import (
+    UNVERSIONED_MOD_MARKER,
+)
 
 # Local imports
 from .printing import (
@@ -51,9 +54,6 @@ from .util import (
 from .weidu_util import (
     get_mod_info_from_weidu_log,
     update_weidu_conf,
-)
-from .parsing import (
-    UNVERSIONED_MOD_MARKER,
 )
 
 
@@ -686,7 +686,8 @@ def run_build(
                     # possible tp2 files insides of it, so guessting the
                     # most appropriate tp2 file from it is enough
                     mod_tp2_path = tp2_fpath_from_mod_dpath(
-                        target_mod_dir, mod_name)
+                        target_mod_dir, mod_name
+                    )
                 elif ex_type == ExtractionType.TYPE_C:
                     # in this case we have a single tp2 file in the root
                     # of the extracted mod dir, so we have to copy it
@@ -701,13 +702,15 @@ def run_build(
                     # unpacked archive was treated as a single mode dir, and
                     # we can guess the tp2 file from it
                     mod_tp2_path = tp2_fpath_from_mod_dpath(
-                        target_mod_dir, mod_name)
+                        target_mod_dir, mod_name
+                    )
                 elif ex_type == ExtractionType.TYPE_D:
                     # here we have more than one mod folder, but no tp2 files
                     # in the root of the unpacked archive, so we have to copy
                     # additional mod folders
                     mod_tp2_path = tp2_fpath_from_mod_dpath(
-                        target_mod_dir, mod_name)
+                        target_mod_dir, mod_name
+                    )
                     for mod_folder in res.additional_mod_folder_paths:
                         mod_folder_name = dir_name_from_dir_path(mod_folder)
                         target_mod_folder = os.path.join(

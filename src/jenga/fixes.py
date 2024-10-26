@@ -166,9 +166,10 @@ class EetEndPdialogPartialLinesFix(JengaFix):
 class CrucibleMihModConflictIgnore(JengaFix):
     """Bypass the Crucible mod conflict with MIH_EQ.
 
-    Edits the Crucible tp2 file to remove line that raise mod conflict
-    and terminate on an existing installation of MIH_EQ (Made in Heaven:
-    Encounters & Quests).
+    Edits the Crucible tp2 file to remove line that raise mod conflict and
+    terminate on an existing installation of MIH_EQ (Made in Heaven: Encounters
+    & Quests).
+
     """
 
     def __init__(self, mod_name):
@@ -176,7 +177,8 @@ class CrucibleMihModConflictIgnore(JengaFix):
         self.fix_name = "CrucibleMihModConflictIgnore"
 
     LINE_TO_DELETE = (
-        "REQUIRE_PREDICATE !FILE_EXISTS ~mih_eq/setup-mih_eq.tp2~ @3002")
+        "REQUIRE_PREDICATE !FILE_EXISTS ~mih_eq/setup-mih_eq.tp2~ @3002"
+    )
     SEARCH_TOKEN = "setup-mih_eq.tp2"
 
     def apply(
@@ -266,6 +268,8 @@ def get_fixes_for_mod(mod_name: str, prefix: bool) -> Sequence[JengaFix]:
         A list of any fixes to apply before/after the specified mod.
 
     """
-    uniform_name = ALIAS_TO_MOD_REGISTRY.get(mod_name.lower(), mod_name.lower())
+    uniform_name = ALIAS_TO_MOD_REGISTRY.get(
+        mod_name.lower(), mod_name.lower()
+    )
     registry = PRE_FIXES_REGISTRY if prefix else POST_FIXES_REGISTRY
     return registry.get(uniform_name, [])
