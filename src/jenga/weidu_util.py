@@ -62,5 +62,7 @@ def get_mod_info_from_weidu_log(install_dir: str) -> dict:
     """
     weidu_log_path = os.path.join(install_dir, "weidu.log")
     res = weidu_log_to_build_dict(weidu_log_path)
+    if not res:
+        return {}
     mod_list = res["mods"]
     return {k["mod"]: k for k in mod_list}

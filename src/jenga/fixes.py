@@ -109,6 +109,9 @@ class EetAddBg1PathCmdFix(JengaCmdFix):
 
     """
 
+    # args format taken from auto-installation section in EET documentation:
+    # https://rawgit.com/K4thos/EET/master/EET/readme-EET.html
+
     def __init__(self, mod_name):
         super().__init__(mod_name)
         self.fix_name = "EetAddBg1PathCmdFix"
@@ -130,7 +133,7 @@ class EetAddBg1PathCmdFix(JengaCmdFix):
             )
         cmd.append("--args-list")
         cmd.append("sp")
-        cmd.append(f"{bg1_path}")
+        cmd.append(f'"{bg1_path}"')
         return cmd
 
 

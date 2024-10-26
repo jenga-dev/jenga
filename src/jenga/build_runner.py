@@ -148,6 +148,7 @@ def execute_mod_installation(
         " ".join(command),
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
+        errors="replace",
         shell=True,
         universal_newlines=True,
         cwd=game_install_dir,
@@ -155,7 +156,7 @@ def execute_mod_installation(
     with open(log_file, "ab") as lf:
         for stdout_line in proc.stdout:
             print(stdout_line, end="")
-            lf.write(stdout_line.encode("utf-8"))
+            lf.write(stdout_line.encode("utf-8", errors="replace"))
             # out.write(stdout_line)
     proc.stdout.close()
     returncode = proc.wait()
@@ -387,7 +388,7 @@ def print_run_config_info_box(runcfg: dict, console: Console) -> None:
         no_wrap=True,
     )
     table1.add_column(
-        "Preder zipped mods",
+        "Prefer zipped mods",
         justify="center",
         style=tcolor,
         no_wrap=True,

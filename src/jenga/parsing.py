@@ -1,5 +1,6 @@
 """Weidu log parsing functionality for Jenga."""
 
+import os
 import re
 from typing import Dict
 
@@ -22,6 +23,8 @@ def weidu_log_to_build_dict(
         A dictionary containing the build information.
 
     """
+    if not os.path.exists(weidu_log_path):
+        return {}
     # Dictionary to store mods information
     mods_info: Dict = {}
 
