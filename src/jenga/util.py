@@ -13,8 +13,8 @@ import patoolib
 from thefuzz import fuzz, process
 
 from .config import (
-    EXTRACTED_MOD_CACHE_DIR_PATH,
-    ZIPPED_MOD_CACHE_DIR_PATH,
+    demand_extracted_mod_cache_dir_path,
+    demand_zipped_mod_cache_dir_path,
 )
 from .errors import (
     IllformedModArchiveError,
@@ -823,14 +823,6 @@ def extract_all_zipped_mods_in_dir_to_dir(
 
 def extract_all_archives_in_zipped_mods_dir_to_extracted_mods_dir() -> None:
     """Extract all archives in the zipped mods dir to the extracted dir."""
-    oper_print(
-        f"Extracting all archives in '{zipped_mods_dpath}' to "
-        f"'{extracted_mods_dpath}'..."
-    )
-    extract_all_zipped_mods_in_dir_to_dir(
-        zipped_mods_dpath, extracted_mods_dpath
-    )
-    oper_print(
-        f"Finished extracting all archives in '{zipped_mods_dpath}' to "
-        f"'{extracted_mods_dpath}'."
-    )
+    zipped_dpath = demand_zipped_mod_cache_dir_path()
+    extracted_dpath = demand_extracted_mod_cache_dir_path()
+    extract_all_zipped_mods_in_dir_to_dir(zipped_dpath, extracted_dpath)

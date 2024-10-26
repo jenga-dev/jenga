@@ -135,31 +135,42 @@ def get_game_dir(game_alias: Optional[str] = None) -> str | None:
     return _GAME_ALIAS_TO_DIR_PATH.get(game_alias.lower())
 
 
-class DirPathCheckResult(Enum):
-    IS_NONE = 1
-    DOES_NOT_EXIST = 2
-    IS_NOT_DIR = 3
-    VALID = 4
-
-
-def check_valid_dir_path(dir_path: Any[str, None]) -> DirPathCheckResult:
+def demand_valid_dir_path_config_val(
+    dir_path: Any[str, None],
+    config_key: str,
+) -> str:
     """Check if the directory path is valid.
 
     Parameters
     ----------
     dir_path : str or None
         The directory path to check.
+    config_key : str
+        The configuration key.
 
     Returns
     -------
-    DirPathCheckResult
-        The result of the directory path check.
-
+    str
+        The valid directory path.
     """
     if dir_path is None:
-        return DirPathCheckResult.IS_NONE
+        raise ValueError(f"{config_key} is not set.")
     if not os.path.exists(dir_path):
-        return DirPathCheckResult.DOES_NOT_EXIST
+        raise FileNotFoundError(
+            f"{config_key} set to {dir_path}, which does not exist.")
     if os.path.isfile(dir_path):
-        return DirPathCheckResult.IS_NOT_DIR
-    return DirPathCheckResult.VALID
+        raise IsADirectoryError(
+            f"{config_key} set to {dir_path}, which is a file instead "
+            "of a directory.")
+    return dir_path
+
+
+def demand_zipped_mod_cache_dir_path() -> str :
+    """Get the zipped mod cache directory path."""
+    return demand_valid_dir_path_config_val(
+        ZIPPED_MOD_CACHE_DIR_PATH, CfgKey.ZIPPED_MOD_CACHE_DIR_PATH)
+
+def demand_extracted_mod_cache_dir_path() -> str:
+    """Get the extracted mod cache directory path."""
+    return demand_valid_dir_path_config_val(
+        EXTRACTED_MOD_CACHE_DIR_PATH, CfgKey.EXTRACTED_MOD_CACHE_DIR_PATH)

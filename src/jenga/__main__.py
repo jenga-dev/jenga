@@ -14,6 +14,8 @@ from jenga import (
     run_build,
     weidu_log_to_json_build_file,
     weidu_log_to_yaml_build_file,
+    extract_all_archives_in_zipped_mods_dir_to_extracted_mods_dir,
+    populate_mod_index_from_extracted_mods_dir,
 )
 from jenga import (
     reorder_build_file_by_build_order_file as reorder_bfile_by_border_file,
@@ -159,6 +161,18 @@ def reorder_build_file_by_build_order_file(
         build_order_file_path,
         reordered_build_file_path,
     )
+
+
+@app.command()
+def extract_zipped_mods_to_extracted_mods() -> None:
+    """Extract all zipped mods to the extracted mods directory."""
+    extract_all_archives_in_zipped_mods_dir_to_extracted_mods_dir()
+
+
+@app.command()
+def populate_mod_index() -> None:
+    """Populate the mod index from the extracted mods directory."""
+    populate_mod_index_from_extracted_mods_dir()
 
 
 @app.command()

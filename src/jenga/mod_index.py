@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass
 from typing import Dict, Optional
 
-from .config import EXTRACTED_MOD_CACHE_DIR_PATH
+from .config import demand_extracted_mod_cache_dir_path
 
 # local imports
 from .util import get_tp2_names_and_paths
@@ -122,16 +122,4 @@ def populate_mod_index_by_dpath(
 
 def populate_mod_index_from_extracted_mods_dir() -> None:
     """Populate mod index from the extracted mods directory."""
-    if EXTRACTED_MOD_CACHE_DIR_PATH is None:
-        raise ValueError("EXTRACTED_MOD_CACHE_DIR_PATH is not set.")
-    if not os.path.exists(EXTRACTED_MOD_CACHE_DIR_PATH):
-        raise FileNotFoundError(
-            "EXTRACTED_MOD_CACHE_DIR_PATH does not exist: "
-            f"{EXTRACTED_MOD_CACHE_DIR_PATH}"
-        )
-    if os.path.isfile(EXTRACTED_MOD_CACHE_DIR_PATH):
-        raise NotADirectoryError(
-            "EXTRACTED_MOD_CACHE_DIR_PATH is not a directory: "
-            f"{EXTRACTED_MOD_CACHE_DIR_PATH}"
-        )
-    populate_mod_index_by_dpath(EXTRACTED_MOD_CACHE_DIR_PATH)
+    populate_mod_index_by_dpath(demand_extracted_mod_cache_dir_path())
