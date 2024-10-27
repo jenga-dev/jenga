@@ -1,9 +1,9 @@
 """A simple mod infex inferred from extracted mods."""
 
 # stdlib imports
+import json
 import os
 import re
-import json
 from dataclasses import dataclass
 from typing import Dict, Optional
 
@@ -21,14 +21,14 @@ from .fs_basics import (
 from .fs_util import (
     get_tp2_names_and_paths,
 )
+from .mod_data import (
+    JENGA_HINT_FNAME,
+    JengaHintKey,
+)
 from .printing import (
     note_print,
     oper_print,
     sccs_print,
-)
-from .mod_data import (
-    JENGA_HINT_FNAME,\
-    JengaHintKey,
 )
 
 
@@ -74,6 +74,7 @@ def mod_info_from_dpath(
     -------
     Optional[ModInfo]
         The mod info object if successful, otherwise None.
+
     """
     # read the hint file if it exists
     hint_fpath = os.path.join(extracted_mod_dpath, JENGA_HINT_FNAME)

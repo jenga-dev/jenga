@@ -66,6 +66,7 @@ JENGA_HINT_FNAME = ".jenga_hint.json"
 
 class JengaHintKey:
     """Keys for the Jenga hint file."""
+
     MOD_NAME = "mod_name"
     ARCHIVE_FNAME = "archive_fname"
     EXTRACTION_TYPE = "extraction_type"

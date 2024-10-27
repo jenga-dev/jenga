@@ -1,8 +1,8 @@
 """Utility functions for jenga."""
 
 # Standard library imports
-import os
 import json
+import os
 import shutil
 import tempfile
 from dataclasses import dataclass
@@ -29,8 +29,8 @@ from .fs_basics import (
     make_all_files_in_dir_writable,
 )
 from .mod_data import (
-    MOD_TO_ALIAS_LIST_REGISTRY,
     JENGA_HINT_FNAME,
+    MOD_TO_ALIAS_LIST_REGISTRY,
     JengaHintKey,
 )
 from .printing import (
