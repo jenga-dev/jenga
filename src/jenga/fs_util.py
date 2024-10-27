@@ -6,11 +6,15 @@ import shutil
 import tempfile
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Callable
 
 # Third-party imports
 import patoolib
 from thefuzz import fuzz, process
+from charset_normalizer import (
+    is_binary,
+    from_path,
+)
 
 # local imports
 from .config import (
@@ -51,6 +55,59 @@ def dir_name_from_dir_path(dir_path: str) -> str:
     return os.path.basename(os.path.normpath(dir_path))
 
 
+def robust_read_text_file(path: str) -> str:
+    """Read the text file at the given path.
+
+    Parameters
+    ----------
+    path : str
+        The path to the text file.
+
+    Returns
+    -------
+    str
+        The text content of the file.
+
+    """
+    if is_binary(path):
+        raise ValueError(f"File at {path} is binary.")
+    cs_matches = from_path(path)
+    if len(cs_matches) == 0:
+        raise ValueError(f"Unable to determine encoding for file at {path}.")
+    if len(cs_matches) == 1:
+        return cs_matches[0].output(encoding="utf-8").decode("utf-8")
+    valid_prefixes = ['utf', 'ascii', 'iso', 'ansi']
+    for cs_match in cs_matches:
+        encodings = cs_match.could_be_from_charset
+        for enc in encodings:
+            valid = any(
+                enc.lower().startswith(prefix) for prefix in valid_prefixes
+            )
+            if valid:
+                return cs_match.output(encoding="utf-8").decode("utf-8")
+    best_match = cs_matches.best()
+    if best_match:
+        return best_match.output(encoding="utf-8").decode("utf-8")
+    raise ValueError(f"Unable to determine encoding for file at {path}.")
+
+
+def robust_read_lines_from_text_file(path: str) -> List[str]:
+    """Read the lines of the text file at the given path.
+
+    Parameters
+    ----------
+    path : str
+        The path to the text file.
+
+    Returns
+    -------
+    List[str]
+        The lines of the text file.
+
+    """
+    return robust_read_text_file(path).splitlines()
+
+
 def mirror_backslashes_in_file(
     path: str,
 ) -> None:
@@ -62,8 +119,7 @@ def mirror_backslashes_in_file(
         The path to the input text file.
 
     """
-    with open(path, "rt", encoding="utf-8") as file:
-        text = file.read()
+    text = robust_read_text_file(path)
     text = text.replace("\\", "/")
     with open(path, "wt", encoding="utf-8") as file:
         file.write(text)
@@ -259,6 +315,33 @@ def tp2_fpath_from_mod_dpath(mod_dpath: str, mod_name: str) -> str:
 
 
 class ExtractionType(Enum):
+
+    def __str__(self):
+        if self == ExtractionType.TYPE_A:
+            return (
+                "<ExtractionType.TYPE_A: Single mod folder with .tp2 file "
+                "inside>")
+        if self == ExtractionType.TYPE_B:
+            return (
+                "<ExtractionType.TYPE_B: One or more .tp2 file, no folders in"
+                " the archive>")
+        if self == ExtractionType.TYPE_C:
+            return (
+                "<ExtractionType.TYPE_C: One mod folder, no .tp2 file inside;"
+                " tp2 file/s next to it>")
+        if self == ExtractionType.TYPE_D:
+            return (
+                "<ExtractionType.TYPE_D: Multiple mod folders, each "
+                "containing a .tp2 file>")
+        if self == ExtractionType.TYPE_E:
+            return (
+                "<ExtractionType.TYPE_E: Multiple mod folders; tp2 file/s "
+                "next to them>")
+        return self.name
+
+    def __repr__(self):
+        return str(self)
+
     TYPE_A = 1  # Single mod folder with .tp2 file inside
     TYPE_B = 2  # One or more .tp2 file, no folders in the archive
     TYPE_C = 3  # One mod folder, no .tp2 file inside; tp2 file/s next to it
@@ -268,6 +351,7 @@ class ExtractionType(Enum):
 
 @dataclass
 class ExtractionResult:
+    """Dataclass for the result of an extraction operation."""
     extraction_type: ExtractionType
     mod_folder_path: str
     tp2_file_path: str
@@ -338,6 +422,7 @@ def safe_copy_dir_to_game_dir(mod_dir: str, target_mod_dir: str) -> None:
     if os.path.exists(target_mod_dir):
         make_all_files_in_dir_writable(target_mod_dir)
         shutil.rmtree(target_mod_dir)
+        _print(f"Traversal starting at '{dir_path}'...")
         oper_print(f"Deleted existing mod directory '{target_mod_dir}'.")
     shutil.copytree(mod_dir, target_mod_dir)
     make_all_files_in_dir_writable(target_mod_dir)
@@ -346,6 +431,7 @@ def safe_copy_dir_to_game_dir(mod_dir: str, target_mod_dir: str) -> None:
 
 def get_tp2_names_and_paths(
     dir_path: str,
+    verbose: Optional[bool] = False,
 ) -> Dict[str, str]:
     """Get names and paths of all .tp2 files in a directory and subdirectories.
 
@@ -353,6 +439,8 @@ def get_tp2_names_and_paths(
     ----------
     dir_path : str
         The path to the directory.
+    verbose : bool, optional
+        Whether to print verbose output. Default is False.
 
     Returns
     -------
@@ -360,9 +448,12 @@ def get_tp2_names_and_paths(
         A dictionary containing the names and paths of all .tp2 files.
 
     """
+    _print = lambda x: print(x) if verbose else None
+    _print(f"Traversal starting at '{dir_path}'...")
     mod_tp2_fnames = {}
-    for root, dirs, files in os.walk(dir_path):
+    for root, _, files in os.walk(dir_path):
         for f in files:
+            _print(f)
             if f.lower().endswith(".tp2"):
                 fname = os.path.splitext(f)[0]
                 mod_tp2_fnames[fname] = os.path.join(root, f)
@@ -494,13 +585,13 @@ def extract_archive_to_extracted_mods_dir(
                 # ... however, there are .tp2 files directly in the unarchived
                 # dir!
                 mod_structure_type = ExtractionType.TYPE_C
-                primary_mod_temp_dpath = mod_dpath
+                primary_mod_temp_dpath = unarchived_dpath
                 primary_mod_dpath = os.path.join(
-                    extracted_mods_dir_path, mod_dname
+                    extracted_mods_dir_path, archive_fname_no_ext
                 )
                 res = _get_tp2_fpaths(
                     unarchived_dpath,
-                    extracted_mods_dir_path,
+                    primary_mod_dpath,
                     mod_name,
                     archive_tp2_fnames,
                 )
@@ -578,12 +669,12 @@ def extract_archive_to_extracted_mods_dir(
             if res is None:
                 primary_mod_dname = mod_folder_candidates.pop(0)
                 additional_mod_dnames = [
-                    f for f in archive_dnames if f != primary_mod_dname
+                    f for f in mod_folder_candidates if f != primary_mod_dname
                 ]
             else:
                 primary_mod_dname = res[0]
                 additional_mod_dnames = [
-                    f for f in archive_dnames if f != primary_mod_dname
+                    f for f in mod_folder_candidates if f != primary_mod_dname
                 ]
             primary_mod_temp_dpath = os.path.join(
                 unarchived_dpath, primary_mod_dname
@@ -796,9 +887,10 @@ def extract_mod_to_extracted_mods_dir(
     )
 
 
-def extract_all_zipped_mods_in_dir_to_dir(
+def extract_zipped_mods_in_dir_to_dir(
     zip_mods_dpath: str,
     extracted_mods_dpath: str,
+    archive_name_inclusion_criteria: Optional[Callable[[str], bool]] = None,
 ) -> None:
     """Extract all zipped mods to the extracted mods directory.
 
@@ -817,10 +909,16 @@ def extract_all_zipped_mods_in_dir_to_dir(
         for item in dir_items
         if any(item.endswith(ext) for ext in SUPPORTED_EXT)
     ]
+    if archive_name_inclusion_criteria is not None:
+        archives = [
+            archive
+            for archive in archives
+            if archive_name_inclusion_criteria(archive)
+        ]
     n = len(archives)
     done = 0
     for archive in archives:
-        res = {}
+        res = None
         archive_file_path = os.path.join(zip_mods_dpath, archive)
         oper_print(f"Extracting {archive}...")
         try:
@@ -838,7 +936,21 @@ def extract_all_archives_in_zipped_mods_dir_to_extracted_mods_dir() -> None:
     """Extract all archives in the zipped mods dir to the extracted dir."""
     zipped_dpath = demand_zipped_mod_cache_dir_path()
     extracted_dpath = demand_extracted_mod_cache_dir_path()
-    extract_all_zipped_mods_in_dir_to_dir(zipped_dpath, extracted_dpath)
+    extract_zipped_mods_in_dir_to_dir(zipped_dpath, extracted_dpath)
+
+
+def extract_some_archives_in_zipped_mods_dir_to_extracted_mods_dir(
+    mod_name_part: str
+) -> None:
+    """Extract all archives in the zipped mods dir to the extracted dir."""
+    zipped_dpath = demand_zipped_mod_cache_dir_path()
+    extracted_dpath = demand_extracted_mod_cache_dir_path()
+    criteria = lambda name: mod_name_part.lower() in name.lower()
+    extract_zipped_mods_in_dir_to_dir(
+        zipped_dpath,
+        extracted_dpath,
+        archive_name_inclusion_criteria=criteria,
+    )
 
 
 def overwrite_dir_with_another_dir(

@@ -15,6 +15,7 @@ from .config import (
 )
 from .fs_util import (
     extract_all_archives_in_zipped_mods_dir_to_extracted_mods_dir,
+    extract_some_archives_in_zipped_mods_dir_to_extracted_mods_dir,
     overwrite_game_dir_with_source_dir,
 )
 from .mod_index import (
@@ -32,4 +33,5 @@ __all__ = [  # noqa: F405
     "overwrite_game_dir_with_source_dir",
     "populate_mod_index_from_extracted_mods_dir",
     "extract_all_archives_in_zipped_mods_dir_to_extracted_mods_dir",
+    "extract_some_archives_in_zipped_mods_dir_to_extracted_mods_dir",
 ]

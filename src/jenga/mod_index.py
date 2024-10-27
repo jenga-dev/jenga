@@ -7,15 +7,23 @@ import re
 from dataclasses import dataclass
 from typing import Dict, Optional
 
+# 3rd party imports
+from rich.progress import track
+
+
 # local imports
 from .config import (
     demand_extracted_mod_cache_dir_path,
     get_xdg_config_dpath,
 )
-from .fs_util import get_tp2_names_and_paths
+from .fs_util import (
+    get_tp2_names_and_paths,
+    robust_read_lines_from_text_file,
+)
 from .printing import (
     oper_print,
     sccs_print,
+    note_print,
 )
 
 
@@ -37,7 +45,7 @@ MOD_INDEX: Dict[str, ModInfo] = {}
 def get_mod_info(mod_name: str) -> Optional[ModInfo]:
     """Get mod info by mod name."""
     try:
-        MOD_INDEX[mod_name]
+        MOD_INDEX[mod_name.lower()]
     except KeyError:
         return None
 
@@ -52,7 +60,12 @@ def mod_info_from_dpath(
     # - tp2_fpath: the path to the shortest-named .tp2 file in the folder
     #              (including subfolders)
     tp2_fnames_to_fpaths = get_tp2_names_and_paths(extracted_mod_dpath)
-    tp2_fname = min(tp2_fnames_to_fpaths.keys(), key=len)
+    try:
+        tp2_fname = min(tp2_fnames_to_fpaths.keys(), key=len)
+    except ValueError:
+        tp2_fnames_to_fpaths = get_tp2_names_and_paths(
+            extracted_mod_dpath, verbose=True)
+        tp2_fname = min(tp2_fnames_to_fpaths.keys(), key=len)
     if ".tp2" in tp2_fname:
         name = tp2_fname.replace(".tp2", "")
     else:
@@ -63,8 +76,7 @@ def mod_info_from_dpath(
     #            it is a line of the form VERSION ~0.91.1~
     version = ""
     pattern = re.compile(r"VERSION\s*\~([a-zA-Z0-9\.\_\-]+)\~")
-    with open(tp2_fpath, "r", encoding="utf-8") as tp2_f:
-        tp2_lines = tp2_f.readlines()
+    tp2_lines = robust_read_lines_from_text_file(tp2_fpath)
     for line in tp2_lines:
         match = pattern.match(line)
         if match:
@@ -93,8 +105,7 @@ def mod_info_from_dpath(
     if len(ini_fpaths) > 0:
         for ini_fpath in ini_fpaths:
             # read the first .ini file found
-            with open(ini_fpath, "r", encoding="utf-8") as ini_f:
-                ini_lines = ini_f.readlines()
+            ini_lines = robust_read_lines_from_text_file(ini_fpath)
             # search for the [Metadata] section
             metadata_section = False
             for line in ini_lines:
@@ -121,21 +132,47 @@ MOD_INDEX_FPATH = os.path.join(
 )
 
 
+def _is_likely_mod_dir_name(dir_name: str) -> bool:
+    """Check if a directory name is like a mod directory name."""
+    lname = dir_name.lower()
+    if lname.startswith("__"):
+        return False
+    if lname.startswith("."):
+        return False
+    if lname == "docs":
+        return False
+    if lname.endswith(".app"):
+        return False
+    return True
+
+
 def populate_mod_index_by_dpath(
     extracted_mods_dpath: str,
+    verbose: Optional[bool] = False,
 ) -> None:
     """Populate mod index from extracted mods."""
     # iterate over all folders in extracted_mods_dpath,
     # and for each folder, determine mod attributes like so:
     oper_print("Populating mod index from the extracted mods folder...")
-    for fof in os.scandir(extracted_mods_dpath):
+    entries = list(os.scandir(extracted_mods_dpath))
+    for fof in track(entries ,description="Processing mods...",):
+        mod_info = None
         if fof.is_dir():
-            mod_info = mod_info_from_dpath(fof.path)
-            if mod_info:
-                MOD_INDEX[mod_info.name] = mod_info
+            if _is_likely_mod_dir_name(fof.name):
+                try:
+                    mod_info = mod_info_from_dpath(fof.path)
+                except Exception as e:
+                    note_print(
+                        f"Error while processing mod dir at {fof.path}: {e}"
+                        "\nSkipping this mod."
+                    )
+            if mod_info is not None:
+                MOD_INDEX[mod_info.name.lower()] = mod_info
+                if verbose:
+                    sccs_print(f"Added to the mod index: {mod_info}")
     sccs_print("Mod index populated from the extracted mods folder.")
     # write the mod index to a file
-    dump_dict = {name: info.__dict__ for name, info in MOD_INDEX.items()}
+    dump_dict = {name.lower(): info.__dict__ for name, info in MOD_INDEX.items()}
     with open(MOD_INDEX_FPATH, "w") as f:
         json.dump(dump_dict, f, indent=4)
     sccs_print("Mod index written to config directory.")
