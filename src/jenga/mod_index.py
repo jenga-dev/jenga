@@ -1,18 +1,19 @@
 """A simple mod infex inferred from extracted mods."""
 
 # stdlib imports
+import json
 import os
 import re
-import json
 from dataclasses import dataclass
 from typing import Dict, Optional
 
-# local imports
-from .fs_util import get_tp2_names_and_paths
 from .config import (
     demand_extracted_mod_cache_dir_path,
     get_xdg_config_dpath,
 )
+
+# local imports
+from .fs_util import get_tp2_names_and_paths
 
 
 @dataclass
@@ -129,20 +130,18 @@ def populate_mod_index_by_dpath(
             if mod_info:
                 MOD_INDEX[mod_info.name] = mod_info
     # write the mod index to a file
-    dump_dict = {
-        name: info.__dict__
-        for name, info in MOD_INDEX.items()
-    }
-    with open(MOD_INDEX_FPATH, 'w') as f:
+    dump_dict = {name: info.__dict__ for name, info in MOD_INDEX.items()}
+    with open(MOD_INDEX_FPATH, "w") as f:
         json.dump(dump_dict, f, indent=4)
 
 
 def load_mod_index_from_config() -> None:
     """Load mod index from config."""
     if not os.path.exists(MOD_INDEX_FPATH) or (
-            not os.path.isfile(MOD_INDEX_FPATH)):
+        not os.path.isfile(MOD_INDEX_FPATH)
+    ):
         return
-    with open(MOD_INDEX_FPATH, 'r') as f:
+    with open(MOD_INDEX_FPATH, "r") as f:
         mod_index = json.load(f)
     for name, info in mod_index.items():
         MOD_INDEX[name] = ModInfo(**info)

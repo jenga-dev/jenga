@@ -234,5 +234,6 @@ def get_xdg_config_dpath() -> str:
     -------
     str
         The XDG config directory path.
+
     """
     return CFG.xdg_cfg_dpath()
