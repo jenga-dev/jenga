@@ -7,13 +7,16 @@ import re
 from dataclasses import dataclass
 from typing import Dict, Optional
 
+# local imports
 from .config import (
     demand_extracted_mod_cache_dir_path,
     get_xdg_config_dpath,
 )
-
-# local imports
 from .fs_util import get_tp2_names_and_paths
+from .printing import (
+    sccs_print,
+    oper_print,
+)
 
 
 @dataclass
@@ -124,15 +127,18 @@ def populate_mod_index_by_dpath(
     """Populate mod index from extracted mods."""
     # iterate over all folders in extracted_mods_dpath,
     # and for each folder, determine mod attributes like so:
+    oper_print("Populating mod index from the extracted mods folder...")
     for fof in os.scandir(extracted_mods_dpath):
         if fof.is_dir():
             mod_info = mod_info_from_dpath(fof.path)
             if mod_info:
                 MOD_INDEX[mod_info.name] = mod_info
+    sccs_print("Mod index populated from the extracted mods folder.")
     # write the mod index to a file
     dump_dict = {name: info.__dict__ for name, info in MOD_INDEX.items()}
     with open(MOD_INDEX_FPATH, "w") as f:
         json.dump(dump_dict, f, indent=4)
+    sccs_print("Mod index written to config directory.")
 
 
 def load_mod_index_from_config() -> None:
@@ -141,10 +147,12 @@ def load_mod_index_from_config() -> None:
         not os.path.isfile(MOD_INDEX_FPATH)
     ):
         return
+    oper_print("Attempting to load mod index from config directory...")
     with open(MOD_INDEX_FPATH, "r") as f:
         mod_index = json.load(f)
     for name, info in mod_index.items():
         MOD_INDEX[name] = ModInfo(**info)
+    sccs_print("Mod index loaded from config directory.")
 
 
 load_mod_index_from_config()
