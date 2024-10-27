@@ -2,6 +2,7 @@
 
 # Standard library imports
 import os
+import json
 import shutil
 import tempfile
 from dataclasses import dataclass
@@ -27,8 +28,10 @@ from .fs_basics import (
     fuzzy_find,
     make_all_files_in_dir_writable,
 )
-from .mod_alias_reg import (
+from .mod_data import (
     MOD_TO_ALIAS_LIST_REGISTRY,
+    JENGA_HINT_FNAME,
+    JengaHintKey,
 )
 from .printing import (
     note_print,
@@ -673,7 +676,17 @@ def extract_archive_to_extracted_mods_dir(
                 f"'{extracted_mods_dir_path}'."
             )
 
-    # Step 7: Clean up temporary directory
+    # Step 7: Write a Jenga hint file into the mod folder
+    hint_fpath = os.path.join(primary_mod_dpath, JENGA_HINT_FNAME)
+    hint_data = {
+        JengaHintKey.MOD_NAME: mod_name,
+        JengaHintKey.ARCHIVE_FNAME: archive_fname,
+        JengaHintKey.EXTRACTION_TYPE: mod_structure_type.name,
+        JengaHintKey.MAIN_TP2_FPATH: tp2_fpath,
+    }
+    json.dump(hint_data, open(hint_fpath, "w"), indent=4)
+
+    # Step 8: Clean up temporary directory
     shutil.rmtree(temp_dir)
 
     return ExtractionResult(

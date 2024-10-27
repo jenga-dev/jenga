@@ -1,9 +1,9 @@
 """A simple mod infex inferred from extracted mods."""
 
 # stdlib imports
-import json
 import os
 import re
+import json
 from dataclasses import dataclass
 from typing import Dict, Optional
 
@@ -25,6 +25,10 @@ from .printing import (
     note_print,
     oper_print,
     sccs_print,
+)
+from .mod_data import (
+    JENGA_HINT_FNAME,\
+    JengaHintKey,
 )
 
 
@@ -59,25 +63,52 @@ def get_mod_info(mod_name: str) -> Optional[ModInfo]:
 def mod_info_from_dpath(
     extracted_mod_dpath: str,
 ) -> Optional[ModInfo]:
-    # - extracted_dpath: the path to the folder
+    """Get mod info from extracted mod directory path.
+
+    Parameters
+    ----------
+    extracted_mod_dpath : str
+        The path to the extracted mod directory.
+
+    Returns
+    -------
+    Optional[ModInfo]
+        The mod info object if successful, otherwise None.
+    """
+    # read the hint file if it exists
+    hint_fpath = os.path.join(extracted_mod_dpath, JENGA_HINT_FNAME)
+    hint = {}
+    if os.path.exists(hint_fpath):
+        hint = json.load(open(hint_fpath, "r"))
     # How mod attributes are determined:
     # - name: the name (without extension) of the shortest-named
     #         .tp2 file in the folder (including subfolders)
     # - tp2_fpath: the path to the shortest-named .tp2 file in the folder
     #              (including subfolders)
-    tp2_fnames_to_fpaths = get_tp2_names_and_paths(extracted_mod_dpath)
-    try:
-        tp2_fname = min(tp2_fnames_to_fpaths.keys(), key=len)
-    except ValueError:
-        tp2_fnames_to_fpaths = get_tp2_names_and_paths(
-            extracted_mod_dpath, verbose=True
-        )
-        tp2_fname = min(tp2_fnames_to_fpaths.keys(), key=len)
-    if ".tp2" in tp2_fname:
-        name = tp2_fname.replace(".tp2", "")
-    else:
-        name = tp2_fname
-    tp2_fpath = tp2_fnames_to_fpaths[tp2_fname]
+    name = None
+    tp2_fpath = None
+    # better to get the name and tp2_fpath from the hint file
+    if JengaHintKey.MOD_NAME in hint:
+        name = hint[JengaHintKey.MOD_NAME]
+    if JengaHintKey.MAIN_TP2_FPATH in hint:
+        tp2_fpath = hint[JengaHintKey.MAIN_TP2_FPATH]
+    # if one or both are missing from the hint file, infer them from the folder
+    if name is None or tp2_fpath is None:
+        tp2_fnames_to_fpaths = get_tp2_names_and_paths(extracted_mod_dpath)
+        try:
+            tp2_fname = min(tp2_fnames_to_fpaths.keys(), key=len)
+        except ValueError:
+            tp2_fnames_to_fpaths = get_tp2_names_and_paths(
+                extracted_mod_dpath, verbose=True
+            )
+            tp2_fname = min(tp2_fnames_to_fpaths.keys(), key=len)
+        if name is None:
+            if ".tp2" in tp2_fname:
+                name = tp2_fname.replace(".tp2", "")
+            else:
+                name = tp2_fname
+        if tp2_fpath is None:
+            tp2_fpath = tp2_fnames_to_fpaths[tp2_fname]
     # get the version of the mod
     # - version: the version string in the .tp2 file
     #            it is a line of the form VERSION ~0.91.1~
@@ -121,6 +152,7 @@ def mod_info_from_dpath(
                         description = line.split("=")[1].strip()
                 if "[Metadata]" in line:
                     metadata_section = True
+    # - extracted_dpath: the path to the folder
     # return a ModInfo object
     return ModInfo(
         name=name,

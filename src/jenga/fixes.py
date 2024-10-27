@@ -13,7 +13,7 @@ from .config import (
     CfgKey,
 )
 from .fs_basics import merge_dirs
-from .mod_alias_reg import (
+from .mod_data import (
     ALIAS_TO_MOD_REGISTRY,
     CRUCIBLE,
     EET,

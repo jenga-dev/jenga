@@ -57,3 +57,16 @@ for alias, mod in ALIAS_TO_MOD_REGISTRY.items():
         MOD_TO_ALIAS_LIST_REGISTRY[mod] = [alias]
     else:
         MOD_TO_ALIAS_LIST_REGISTRY[mod].append(alias)
+
+
+# ===== Mod Hints =====
+
+JENGA_HINT_FNAME = ".jenga_hint.json"
+
+
+class JengaHintKey:
+    """Keys for the Jenga hint file."""
+    MOD_NAME = "mod_name"
+    ARCHIVE_FNAME = "archive_fname"
+    EXTRACTION_TYPE = "extraction_type"
+    MAIN_TP2_FPATH = "main_tp2_fpath"
