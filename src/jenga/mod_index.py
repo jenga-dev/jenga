@@ -17,12 +17,14 @@ from .config import (
 )
 from .fs_util import (
     get_tp2_names_and_paths,
-    robust_read_lines_from_text_file,
 )
 from .printing import (
     note_print,
     oper_print,
     sccs_print,
+)
+from .fs_basics import (
+    robust_read_lines_from_text_file,
 )
 
 
@@ -46,8 +48,12 @@ def get_mod_info(mod_name: str) -> Optional[ModInfo]:
     try:
         return MOD_INDEX[mod_name.lower()]
     except KeyError:
-        note_print(f"Mod {mod_name} not found in the mod index.")
-        return None
+        try:
+            prefixed_mod_name = f"setup-{mod_name}"
+            return MOD_INDEX[prefixed_mod_name.lower()]
+        except KeyError:
+            note_print(f"Mod {mod_name} not found in the mod index.")
+            return None
 
 
 def mod_info_from_dpath(

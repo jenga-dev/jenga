@@ -10,10 +10,6 @@ from typing import Callable, Dict, List, Optional, Tuple
 
 # Third-party imports
 import patoolib
-from charset_normalizer import (
-    from_path,
-    is_binary,
-)
 from thefuzz import fuzz, process
 
 # local imports
@@ -27,187 +23,18 @@ from .config import (
 from .errors import (
     IllformedModArchiveError,
 )
-from .fixes import (
+from .mod_alias_reg import (
     MOD_TO_ALIAS_LIST_REGISTRY,
 )
 from .printing import (
-    jprint,
     note_print,
     oper_print,
     sccs_print,
 )
-
-
-def dir_name_from_dir_path(dir_path: str) -> str:
-    """Get the directory name from the directory path.
-
-    Parameters
-    ----------
-    dir_path : str
-        The path to the directory.
-
-    Returns
-    -------
-    str
-        The name of the directory.
-
-    """
-    return os.path.basename(os.path.normpath(dir_path))
-
-
-def robust_read_text_file(path: str) -> str:
-    """Read the text file at the given path.
-
-    Parameters
-    ----------
-    path : str
-        The path to the text file.
-
-    Returns
-    -------
-    str
-        The text content of the file.
-
-    """
-    if is_binary(path):
-        raise ValueError(f"File at {path} is binary.")
-    cs_matches = from_path(path)
-    if len(cs_matches) == 0:
-        raise ValueError(f"Unable to determine encoding for file at {path}.")
-    if len(cs_matches) == 1:
-        return cs_matches[0].output(encoding="utf-8").decode("utf-8")
-    valid_prefixes = ["utf", "ascii", "iso", "ansi"]
-    for cs_match in cs_matches:
-        encodings = cs_match.could_be_from_charset
-        for enc in encodings:
-            valid = any(
-                enc.lower().startswith(prefix) for prefix in valid_prefixes
-            )
-            if valid:
-                return cs_match.output(encoding="utf-8").decode("utf-8")
-    best_match = cs_matches.best()
-    if best_match:
-        return best_match.output(encoding="utf-8").decode("utf-8")
-    raise ValueError(f"Unable to determine encoding for file at {path}.")
-
-
-def robust_read_lines_from_text_file(path: str) -> List[str]:
-    """Read the lines of the text file at the given path.
-
-    Parameters
-    ----------
-    path : str
-        The path to the text file.
-
-    Returns
-    -------
-    List[str]
-        The lines of the text file.
-
-    """
-    return robust_read_text_file(path).splitlines()
-
-
-def mirror_backslashes_in_file(
-    path: str,
-) -> None:
-    r"""Replace every \ in the input text file with an / character.
-
-    Parameters
-    ----------
-    path : str
-        The path to the input text file.
-
-    """
-    text = robust_read_text_file(path)
-    text = text.replace("\\", "/")
-    with open(path, "wt", encoding="utf-8") as file:
-        file.write(text)
-
-
-def check_all_files_in_dir_are_writeable(path: str) -> None:
-    for root, dirs, files in os.walk(path):
-        # check perms for sub-directories
-        for momo in dirs:
-            if not os.access(os.path.join(root, momo), os.W_OK):
-                jprint(
-                    f"[red]Directory {os.path.join(root, momo)} "
-                    "is not writable."
-                )
-        # check perms for files
-        for momo in files:
-            if not os.access(os.path.join(root, momo), os.W_OK):
-                jprint(
-                    f"[red]File {os.path.join(root, momo)} is not writable."
-                )
-
-
-def make_all_files_in_dir_writable(path: str) -> None:
-    jprint(f"[green]Making all files in {path} writable...")
-    os.system(f'sudo chmod 777 "{path}"')
-    os.system(f'sudo chmod -R 777 "{path}"')
-    # permission = 0o777
-    # # Change permissions for the top-level folder
-    # os.chmod(path, permission)
-    #
-    # for root, dirs, files in os.walk(path):
-    #     # set perms on sub-directories
-    #     for momo in dirs:
-    #         os.chmod(os.path.join(root, momo), permission)
-    #         # os.chown(os.path.join(root, momo), permission, 20)
-    #
-    #     # set perms on files
-    #     for momo in files:
-    #         os.chmod(os.path.join(root, momo), permission)
-    #         # os.chown(os.path.join(root, momo), permission, 20)
-    check_all_files_in_dir_are_writeable(path)
-
-
-def fuzzy_find(
-    directory: str,
-    name: str,
-    file_types: Optional[List[str]] = None,
-) -> Tuple[Optional[str], float]:
-    """Fuzzy find the file matching the given name in directory.
-
-    Parameters
-    ----------
-    directory : str
-        The directory to search for the file.
-    name : str
-        The name of the file to search for.
-    file_types : List[str], optional
-        The file types to search for. If not provided, allows for all
-        file types.
-
-    Returns
-    -------
-    str
-        The path to the best matching file/folder found in the directory.
-    score
-        The score of the match.
-
-    """
-    if file_types is None:
-        _is_valid_entry = lambda entry: True
-    else:
-        kfile_types = file_types
-
-        def _is_valid_entry(entry: str) -> bool:
-            lower_entry = entry.lower()
-            return any(
-                lower_entry.endswith(file_type) for file_type in kfile_types
-            )
-
-    entries = [
-        entry for entry in os.listdir(directory) if _is_valid_entry(entry)
-    ]
-    result = process.extractOne(name.lower(), entries, scorer=fuzz.ratio)
-    if result is None:
-        return None, 0
-    best_match: str = result[0]
-    score: float = result[1]
-    return best_match, score
+from .fs_basics import (
+    make_all_files_in_dir_writable,
+    fuzzy_find,
+)
 
 
 def fuzzy_find_file_or_dir(
@@ -245,8 +72,23 @@ def fuzzy_find_file_or_dir(
             if name.lower() in fof.lower():
                 candidates.append(fof)
         if len(candidates) == 1:
-            return os.path.join(directory, candidates[0])
+            if setup_file_search:
+                if candidates[0].endswith(".tp2"):
+                    return os.path.join(directory, candidates[0])
+            if archive_search:
+                if candidates[0].endswith((".zip", ".tar.gz", ".rar")):
+                    return os.path.join(directory, candidates[0])
         low_candidates = [cand.lower() for cand in candidates]
+        if setup_file_search:
+            low_candidates = [
+                cand for cand in low_candidates if cand.endswith(".tp2")
+            ]
+        elif archive_search:
+            low_candidates = [
+                cand
+                for cand in low_candidates
+                if cand.endswith((".zip", ".tar.gz", ".rar"))
+            ]
         result = process.extractOne(
             name.lower(), low_candidates, scorer=fuzz.ratio
         )
@@ -287,6 +129,15 @@ def fuzzy_find_file_or_dir(
         best_match, score = fuzzy_find(directory, alias, file_types)
         results_and_scores.append((best_match, score))
     results_and_scores.sort(key=lambda x: x[1], reverse=True)
+    if setup_file_search:
+        results_and_scores = [
+            res for res in results_and_scores if res[0].endswith(".tp2")
+        ]
+    elif archive_search:
+        results_and_scores = [
+            res for res in results_and_scores if res[0].endswith(
+                (".zip", ".tar.gz", ".rar"))
+        ]
     print(results_and_scores)
     best_match = results_and_scores[0][0]
     best_score = results_and_scores[0][1]
@@ -462,6 +313,37 @@ def get_tp2_names_and_paths(
                 fname = os.path.splitext(f)[0]
                 mod_tp2_fnames[fname] = os.path.join(root, f)
     return mod_tp2_fnames
+
+
+_ARCHIVE_MOD_DIR_MAPPERS = {
+    'sr_revised': {
+        'spell_rev': 'sr_revised',
+    },
+    'ir_revised': {
+        'item_rev': 'ir_revised',
+    },
+}
+
+
+def _get_archive_mod_dir_name_mappers(
+    archive_fname_no_ext: str,
+) -> Optional[Dict[str, str]]:
+    """Get the archive mod directory name mappers."""
+    for key in _ARCHIVE_MOD_DIR_MAPPERS:
+        if key in archive_fname_no_ext.lower():
+            return _ARCHIVE_MOD_DIR_MAPPERS[key]
+
+
+def _map_mod_dir_path(
+    mod_dpath: str,
+    dname_mappers: Dict[str, str],
+) -> str:
+    """Map the mod directory path to the target game directory path."""
+    mod_parent_dpath = os.path.dirname(mod_dpath)
+    mod_dname = os.path.basename(mod_dpath)
+    if mod_dname in dname_mappers:
+        mod_dname = dname_mappers[mod_dname]
+    return os.path.join(mod_parent_dpath, mod_dname)
 
 
 def extract_archive_to_extracted_mods_dir(
@@ -717,6 +599,22 @@ def extract_archive_to_extracted_mods_dir(
                 ]
 
     # Step 6: Move to extracted_mods_dir_path
+    # 6.0: Handle cases like IR_Revised and SR_Revised, where the path for
+    # the targter extracted mod folder should be altered (as it is spell_rev
+    # for SR_Revised, for example) or it will overwrite another mod.
+    mod_dname_mappers = _get_archive_mod_dir_name_mappers(archive_fname_no_ext)
+    if mod_dname_mappers is not None:
+        primary_mod_dpath = _map_mod_dir_path(
+            primary_mod_dpath, mod_dname_mappers)
+        for i, dpath in enumerate(additional_mod_dpaths):
+            additional_mod_dpaths[i] = _map_mod_dir_path(
+                dpath, mod_dname_mappers)
+        for k, v in mod_dname_mappers.items():
+            if k in tp2_fpath:
+                tp2_fpath = tp2_fpath.replace(k, v, 1)
+            for i, fpath in enumerate(additional_tp2_fpaths):
+                if k in fpath:
+                    additional_tp2_fpaths[i] = fpath.replace(k, v, 1)
     # 6.1: Copy the primary mod folder
     if os.path.exists(primary_mod_dpath):
         make_all_files_in_dir_writable(primary_mod_dpath)
@@ -1004,6 +902,9 @@ def overwrite_game_dir_with_source_dir(
 
     """
     game_dir = get_game_dir(game_alias, CfgKey.TARGET)
+    if game_dir is None:
+        raise FileNotFoundError(
+            f"Game directory for '{game_alias}' not found.")
     source_dir = demand_game_dir_path(game_alias, dir_type=source_dir_type)
     note_print(
         f"Preparing to OVERWRITE the game directory at '{game_dir}' with a "

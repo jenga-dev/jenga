@@ -28,9 +28,9 @@ from .fixes import (
     get_cmd_fixes_for_mod,
     get_prepost_fixes_for_mod,
 )
+from .fs_basics import dir_name_from_dir_path
 from .fs_util import (
     ExtractionType,
-    dir_name_from_dir_path,
     extract_mod_to_extracted_mods_dir,
     fuzzy_find_file_or_dir,
     make_all_files_in_dir_writable,
@@ -683,6 +683,8 @@ def run_build(
         if force_lang_in_weidu_conf:
             update_weidu_conf(game_install_dir, lang)
 
+        target_mod_dir = None
+        mod_tp2_path = None
         # First, we check for the possibility of using the mod index
         from_mod_index = False
         if prefer_mod_index:
@@ -700,7 +702,7 @@ def run_build(
                 oper_print(
                     f"Found mod {mod_name} in the mod index.\n"
                     f"Extracted mod directory: {mod_dir}\n"
-                    f"Mod tp2 file: {tp2_fpath}\n"
+                    f"Mod tp2 file: {tp2_fpath}"
                 )
                 safe_copy_dir_to_game_dir(mod_dir, target_mod_dir)
                 tp2_fname = os.path.basename(tp2_fpath)

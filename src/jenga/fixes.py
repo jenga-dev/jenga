@@ -12,6 +12,11 @@ from birch import Birch
 from .config import (
     CfgKey,
 )
+from .mod_index import get_mod_info
+from .fs_basics import merge_dirs
+from .mod_alias_reg import (
+    ALIAS_TO_MOD_REGISTRY, EET, CRUCIBLE, ITEM_REV, SPELL_REV, EET_END)
+
 
 # ===== Base Fix Classes =====
 
@@ -268,6 +273,56 @@ class CrucibleMihModConflictIgnore(JengaPrePostFix):
                     f.write(line)
 
 
+# ===== item_rev Fixes =====
+
+class ItemRevAugmentWithIrRevised(JengaPrePostFix):
+    """Augments item_rev with ir_revised."""
+
+    def __init__(self, mod_name):
+        super().__init__(mod_name)
+        self.fix_name = "ItemRevAugmentWithIrRevised"
+
+    def apply(
+        self,
+        mod_dir: str,
+        mod_tp2_path: str,
+        jenga_config: Birch,
+        run_config: dict,
+    ) -> None:
+        irr_info = get_mod_info("ir_revised")
+        if irr_info is None:
+            return
+        irr_dpath = irr_info.extracted_dpath
+        # merge the content of irr_dpath into mod_dir, with irr_dpath files
+        # taking precedence over mod_dir files in case of conflicts.
+        merge_dirs(irr_dpath, mod_dir)
+
+
+# ===== spell_rev Fixes =====
+
+class SpellRevAugmentWithSrRevised(JengaPrePostFix):
+    """Augments spell_rev with sr_revised."""
+
+    def __init__(self, mod_name):
+        super().__init__(mod_name)
+        self.fix_name = "SpellRevAugmentWithSrRevised"
+
+    def apply(
+        self,
+        mod_dir: str,
+        mod_tp2_path: str,
+        jenga_config: Birch,
+        run_config: dict,
+    ) -> None:
+        srr_info = get_mod_info("sr_revised")
+        if srr_info is None:
+            return
+        srr_dpath = srr_info.extracted_dpath
+        # merge the content of srr_dpath into mod_dir, with srr_dpath files
+        # taking precedence over mod_dir files in case of conflicts.
+        merge_dirs(srr_dpath, mod_dir)
+
+
 # ===== EET_END Fixes =====
 
 
@@ -333,49 +388,6 @@ class EetEndPdialogPartialLinesFix(JengaPrePostFix):
         fix_pdialog_files_in_directory(run_config["game_dir"])
 
 
-# ===== Mod Aliases Registry =====
-
-# Mod Names
-EET = "EET"
-LEUI_BG1EE = "LEUI-BG1EE"
-AFH = "AnotherFineHell"
-EET_END = "EET_END"
-LUCY = "LUCY"
-DC = "DC"
-CRUCIBLE = "CRUCIBLE"
-
-
-# Mod Alias Registry
-ALIAS_TO_MOD_REGISTRY: Dict[str, str] = {
-    # EET ALIASES
-    EET.lower(): EET.lower(),
-    # LEUI_BG1EE ALIASES
-    LEUI_BG1EE.lower(): LEUI_BG1EE.lower(),
-    "lefreuts-enhanced-ui-bg1ee-skin".lower(): LEUI_BG1EE.lower(),
-    # AFH ALIASES
-    AFH.lower(): AFH.lower(),
-    "C#ANOTHERFINEHELL".lower(): AFH.lower(),
-    # LUCY ALIASES
-    LUCY.lower(): LUCY.lower(),
-    "lucy-the-wyvern".lower(): LUCY.lower(),
-    # DC ALIASES
-    DC.lower(): DC.lower(),
-    "DungeonCrawl".lower(): DC.lower(),
-    # CRUCIBLE ALIASES
-    CRUCIBLE.lower(): CRUCIBLE.lower(),
-    # EET_END ALIASES
-    EET_END.lower(): EET_END.lower(),
-    "EETEND".lower(): EET_END.lower(),
-}
-
-
-# build the reverse alias registry
-MOD_TO_ALIAS_LIST_REGISTRY: Dict[str, List[str]] = {}
-for alias, mod in ALIAS_TO_MOD_REGISTRY.items():
-    if mod not in MOD_TO_ALIAS_LIST_REGISTRY:
-        MOD_TO_ALIAS_LIST_REGISTRY[mod] = [alias]
-    else:
-        MOD_TO_ALIAS_LIST_REGISTRY[mod].append(alias)
 
 
 PRE_FIXES_REGISTRY: Dict[str, Sequence[JengaPrePostFix]] = {
@@ -385,11 +397,17 @@ PRE_FIXES_REGISTRY: Dict[str, Sequence[JengaPrePostFix]] = {
     # AFH.lower(): [
     #     AnotherFineHellAfhvisFix(AFH),
     # ],
-    EET_END.lower(): [
-        EetEndPdialogPartialLinesFix(EET_END),
-    ],
     CRUCIBLE.lower(): [
         CrucibleMihModConflictIgnore(CRUCIBLE),
+    ],
+    ITEM_REV.lower(): [
+        ItemRevAugmentWithIrRevised(ITEM_REV),
+    ],
+    SPELL_REV.lower(): [
+        SpellRevAugmentWithSrRevised(SPELL_REV),
+    ],
+    EET_END.lower(): [
+        EetEndPdialogPartialLinesFix(EET_END),
     ],
 }
 
