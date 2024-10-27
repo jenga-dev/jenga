@@ -225,3 +225,14 @@ def demand_game_dir_path(game_alias, dir_type: Optional[str]) -> str:
     return demand_valid_dir_path_config_val(
         game_dir, f"{game_alias} game directory"
     )
+
+
+def get_xdg_config_dpath() -> str:
+    """Get the XDG config directory path.
+
+    Returns
+    -------
+    str
+        The XDG config directory path.
+    """
+    return CFG.xdg_cfg_dpath()
