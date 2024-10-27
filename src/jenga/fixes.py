@@ -141,7 +141,8 @@ class EetCopyEetCommandFilePreFix(JengaPrePostFix):
                 "game directory."
             )
         eet_cmd_target_fpath = os.path.join(
-            run_config["game_install_dir"], eet_cmd_fname)
+            run_config["game_install_dir"], eet_cmd_fname
+        )
         # Delete any existing setup-EET.command file in the game directory
         if os.path.exists(eet_cmd_target_fpath):
             os.remove(eet_cmd_target_fpath)
