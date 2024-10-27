@@ -6,15 +6,15 @@ import shutil
 import tempfile
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Optional, Tuple, Callable
+from typing import Callable, Dict, List, Optional, Tuple
 
 # Third-party imports
 import patoolib
-from thefuzz import fuzz, process
 from charset_normalizer import (
-    is_binary,
     from_path,
+    is_binary,
 )
+from thefuzz import fuzz, process
 
 # local imports
 from .config import (
@@ -76,7 +76,7 @@ def robust_read_text_file(path: str) -> str:
         raise ValueError(f"Unable to determine encoding for file at {path}.")
     if len(cs_matches) == 1:
         return cs_matches[0].output(encoding="utf-8").decode("utf-8")
-    valid_prefixes = ['utf', 'ascii', 'iso', 'ansi']
+    valid_prefixes = ["utf", "ascii", "iso", "ansi"]
     for cs_match in cs_matches:
         encodings = cs_match.could_be_from_charset
         for enc in encodings:
@@ -315,28 +315,32 @@ def tp2_fpath_from_mod_dpath(mod_dpath: str, mod_name: str) -> str:
 
 
 class ExtractionType(Enum):
-
     def __str__(self):
         if self == ExtractionType.TYPE_A:
             return (
                 "<ExtractionType.TYPE_A: Single mod folder with .tp2 file "
-                "inside>")
+                "inside>"
+            )
         if self == ExtractionType.TYPE_B:
             return (
                 "<ExtractionType.TYPE_B: One or more .tp2 file, no folders in"
-                " the archive>")
+                " the archive>"
+            )
         if self == ExtractionType.TYPE_C:
             return (
                 "<ExtractionType.TYPE_C: One mod folder, no .tp2 file inside;"
-                " tp2 file/s next to it>")
+                " tp2 file/s next to it>"
+            )
         if self == ExtractionType.TYPE_D:
             return (
                 "<ExtractionType.TYPE_D: Multiple mod folders, each "
-                "containing a .tp2 file>")
+                "containing a .tp2 file>"
+            )
         if self == ExtractionType.TYPE_E:
             return (
                 "<ExtractionType.TYPE_E: Multiple mod folders; tp2 file/s "
-                "next to them>")
+                "next to them>"
+            )
         return self.name
 
     def __repr__(self):
@@ -352,6 +356,7 @@ class ExtractionType(Enum):
 @dataclass
 class ExtractionResult:
     """Dataclass for the result of an extraction operation."""
+
     extraction_type: ExtractionType
     mod_folder_path: str
     tp2_file_path: str
@@ -940,7 +945,7 @@ def extract_all_archives_in_zipped_mods_dir_to_extracted_mods_dir() -> None:
 
 
 def extract_some_archives_in_zipped_mods_dir_to_extracted_mods_dir(
-    mod_name_part: str
+    mod_name_part: str,
 ) -> None:
     """Extract all archives in the zipped mods dir to the extracted dir."""
     zipped_dpath = demand_zipped_mod_cache_dir_path()

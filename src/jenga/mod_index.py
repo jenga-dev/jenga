@@ -10,7 +10,6 @@ from typing import Dict, Optional
 # 3rd party imports
 from rich.progress import track
 
-
 # local imports
 from .config import (
     demand_extracted_mod_cache_dir_path,
@@ -21,9 +20,9 @@ from .fs_util import (
     robust_read_lines_from_text_file,
 )
 from .printing import (
+    note_print,
     oper_print,
     sccs_print,
-    note_print,
 )
 
 
@@ -64,7 +63,8 @@ def mod_info_from_dpath(
         tp2_fname = min(tp2_fnames_to_fpaths.keys(), key=len)
     except ValueError:
         tp2_fnames_to_fpaths = get_tp2_names_and_paths(
-            extracted_mod_dpath, verbose=True)
+            extracted_mod_dpath, verbose=True
+        )
         tp2_fname = min(tp2_fnames_to_fpaths.keys(), key=len)
     if ".tp2" in tp2_fname:
         name = tp2_fname.replace(".tp2", "")
@@ -155,7 +155,10 @@ def populate_mod_index_by_dpath(
     # and for each folder, determine mod attributes like so:
     oper_print("Populating mod index from the extracted mods folder...")
     entries = list(os.scandir(extracted_mods_dpath))
-    for fof in track(entries ,description="Processing mods...",):
+    for fof in track(
+        entries,
+        description="Processing mods...",
+    ):
         mod_info = None
         if fof.is_dir():
             if _is_likely_mod_dir_name(fof.name):
@@ -172,7 +175,9 @@ def populate_mod_index_by_dpath(
                     sccs_print(f"Added to the mod index: {mod_info}")
     sccs_print("Mod index populated from the extracted mods folder.")
     # write the mod index to a file
-    dump_dict = {name.lower(): info.__dict__ for name, info in MOD_INDEX.items()}
+    dump_dict = {
+        name.lower(): info.__dict__ for name, info in MOD_INDEX.items()
+    }
     with open(MOD_INDEX_FPATH, "w") as f:
         json.dump(dump_dict, f, indent=4)
     sccs_print("Mod index written to config directory.")

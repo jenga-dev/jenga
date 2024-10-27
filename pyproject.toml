@@ -36,10 +36,10 @@ dynamic = [
 ]
 dependencies = [
   "birch",
+  "charset-normalizer",
+  "patool",
   "pyyaml",
   "thefuzz",
-  "charset_normalizer",
-  "patool",
 ]
 urls.Source = "https://github.com/jenga-dev/jenga"
 scripts.jenga = "jenga.__main__:cli"
