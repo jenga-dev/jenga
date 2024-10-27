@@ -14,8 +14,8 @@ from .config import (
 )
 from .fs_util import get_tp2_names_and_paths
 from .printing import (
-    sccs_print,
     oper_print,
+    sccs_print,
 )
 
 
