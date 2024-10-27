@@ -688,7 +688,8 @@ def run_build(
         if prefer_mod_index:
             oper_print(
                 f"Mod index preferred, so trying to find mod {mod_name} in the"
-                " mod index...")
+                " mod index..."
+            )
             mod_info = get_mod_info(mod_name)
             if mod_info:
                 from_mod_index = True
@@ -786,7 +787,8 @@ def run_build(
         if not from_mod_index and not from_archive:
             oper_print("No mod index entry found, and no zipped mod found.")
             oper_print(
-                "Searching for the mod in the extracted mods directory...")
+                "Searching for the mod in the extracted mods directory..."
+            )
             # Find the mod directory
             mod_dir = fuzzy_find_file_or_dir(
                 extracted_mods_dir, mod_name, dir_search=True
