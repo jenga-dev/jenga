@@ -686,28 +686,36 @@ def run_build(
         # First, we check for the possibility of using the mod index
         from_mod_index = False
         if prefer_mod_index:
+            oper_print(
+                f"Mod index preferred, so trying to find mod {mod_name} in the"
+                " mod index...")
             mod_info = get_mod_info(mod_name)
             if mod_info:
                 from_mod_index = True
                 mod_dir = mod_info.extracted_dpath
                 mod_dir_name = dir_name_from_dir_path(mod_dir)
                 target_mod_dir = os.path.join(game_install_dir, mod_dir_name)
-                safe_copy_dir_to_game_dir(mod_dir, target_mod_dir)
-                mod_tp2_path = tp2_fpath_from_mod_dpath(
-                    target_mod_dir, mod_name
-                )
+                tp2_fpath = mod_info.tp2_fpath
                 oper_print(
-                    f"Found mod {mod_name} in the mod index. "
-                    f"Extracted mod directory: {target_mod_dir}"
-                    f"Mod tp2 file: {mod_tp2_path}"
+                    f"Found mod {mod_name} in the mod index.\n"
+                    f"Extracted mod directory: {mod_dir}\n"
+                    f"Mod tp2 file: {tp2_fpath}\n"
+                )
+                safe_copy_dir_to_game_dir(mod_dir, target_mod_dir)
+                tp2_fname = os.path.basename(tp2_fpath)
+                mod_tp2_path = os.path.join(target_mod_dir, tp2_fname)
+                oper_print(
+                    "Mod copied to game directory.\n"
+                    f"Target mod directory: {target_mod_dir}\n"
+                    f"Target tp2 file path: {mod_tp2_path}"
                 )
 
         # Find the mod zipped archive, if available and preferred
-        mod_dir = None
-        target_mod_dir = None
-        mod_tp2_path = None
         from_archive = False
         if prefer_zipped_mods and not from_mod_index:
+            mod_dir = None
+            target_mod_dir = None
+            mod_tp2_path = None
             oper_print("Zipped mods preferred, so...")
             if not zipped_mods_dir:
                 msg = (
@@ -776,6 +784,9 @@ def run_build(
                             shutil.copy(fpath, target_fpath)
 
         if not from_mod_index and not from_archive:
+            oper_print("No mod index entry found, and no zipped mod found.")
+            oper_print(
+                "Searching for the mod in the extracted mods directory...")
             # Find the mod directory
             mod_dir = fuzzy_find_file_or_dir(
                 extracted_mods_dir, mod_name, dir_search=True

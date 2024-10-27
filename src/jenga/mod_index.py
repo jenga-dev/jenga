@@ -44,8 +44,9 @@ MOD_INDEX: Dict[str, ModInfo] = {}
 def get_mod_info(mod_name: str) -> Optional[ModInfo]:
     """Get mod info by mod name."""
     try:
-        MOD_INDEX[mod_name.lower()]
+        return MOD_INDEX[mod_name.lower()]
     except KeyError:
+        note_print(f"Mod {mod_name} not found in the mod index.")
         return None
 
 
