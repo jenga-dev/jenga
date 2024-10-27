@@ -107,6 +107,48 @@ class JengaCmdFix:
 # ===== EET Fixes =====
 
 
+class EetCopyEetCommandFilePreFix(JengaPrePostFix):
+    """Copy the EET command file to the game directory before installation.
+
+    This fix is necessary for EET installations to work correctly.
+
+    """
+
+    def __init__(self, mod_name):
+        super().__init__(mod_name)
+        self.fix_name = "EetCopyEetCommandFilePreFix"
+
+    def apply(
+        self,
+        mod_dir: str,
+        mod_tp2_path: str,
+        jenga_config: Birch,
+        run_config: dict,
+    ) -> None:
+        # find the setup-EET.command file
+        eet_cmd_fname = None
+        eet_cmd_fpath = None
+        ex_mods_dir = jenga_config[CfgKey.EXTRACTED_MOD_CACHE_DIR_PATH]
+        for fname in os.listdir(ex_mods_dir):
+            if fname.lower() == "setup-eet.command":
+                eet_cmd_fname = fname
+                eet_cmd_fpath = os.path.join(ex_mods_dir, fname)
+                break
+        if eet_cmd_fpath is None or eet_cmd_fname is None:
+            raise FileNotFoundError(
+                "setup-EET.command file not found in the extracted mods "
+                "directory. Unable to copy the setup-EET.command file to the "
+                "game directory."
+            )
+        eet_cmd_target_fpath = os.path.join(
+            run_config["game_install_dir"], eet_cmd_fname)
+        # Delete any existing setup-EET.command file in the game directory
+        if os.path.exists(eet_cmd_target_fpath):
+            os.remove(eet_cmd_target_fpath)
+        # Copy the EET command file to the mod directory
+        shutil.copy(eet_cmd_fpath, eet_cmd_target_fpath)
+
+
 class EetAddBg1PathCmdFix(JengaCmdFix):
     """Add the BG1 path to the EET install command.
 
@@ -336,6 +378,9 @@ for alias, mod in ALIAS_TO_MOD_REGISTRY.items():
 
 
 PRE_FIXES_REGISTRY: Dict[str, Sequence[JengaPrePostFix]] = {
+    EET.lower(): [
+        EetCopyEetCommandFilePreFix(EET),
+    ],
     # AFH.lower(): [
     #     AnotherFineHellAfhvisFix(AFH),
     # ],

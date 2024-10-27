@@ -427,7 +427,6 @@ def safe_copy_dir_to_game_dir(mod_dir: str, target_mod_dir: str) -> None:
     if os.path.exists(target_mod_dir):
         make_all_files_in_dir_writable(target_mod_dir)
         shutil.rmtree(target_mod_dir)
-        _print(f"Traversal starting at '{dir_path}'...")
         oper_print(f"Deleted existing mod directory '{target_mod_dir}'.")
     shutil.copytree(mod_dir, target_mod_dir)
     make_all_files_in_dir_writable(target_mod_dir)

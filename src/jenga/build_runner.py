@@ -389,6 +389,12 @@ def print_run_config_info_box(runcfg: dict, console: Console) -> None:
         no_wrap=True,
     )
     table1.add_column(
+        "Prefer mod index",
+        justify="center",
+        style=tcolor,
+        no_wrap=True,
+    )
+    table1.add_column(
         "Prefer zipped mods",
         justify="center",
         style=tcolor,
@@ -400,6 +406,7 @@ def print_run_config_info_box(runcfg: dict, console: Console) -> None:
         f"{runcfg.get('game_install_dir')}",
         f"{runcfg.get('lang')}",
         f"{runcfg.get('force_lang_in_weidu_conf')}",
+        f"{runcfg.get('prefer_mod_index')}",
         f"{runcfg.get('prefer_zipped_mods')}",
     )
 
