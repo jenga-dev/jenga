@@ -12,11 +12,16 @@ from birch import Birch
 from .config import (
     CfgKey,
 )
-from .mod_index import get_mod_info
 from .fs_basics import merge_dirs
 from .mod_alias_reg import (
-    ALIAS_TO_MOD_REGISTRY, EET, CRUCIBLE, ITEM_REV, SPELL_REV, EET_END)
-
+    ALIAS_TO_MOD_REGISTRY,
+    CRUCIBLE,
+    EET,
+    EET_END,
+    ITEM_REV,
+    SPELL_REV,
+)
+from .mod_index import get_mod_info
 
 # ===== Base Fix Classes =====
 
@@ -275,6 +280,7 @@ class CrucibleMihModConflictIgnore(JengaPrePostFix):
 
 # ===== item_rev Fixes =====
 
+
 class ItemRevAugmentWithIrRevised(JengaPrePostFix):
     """Augments item_rev with ir_revised."""
 
@@ -299,6 +305,7 @@ class ItemRevAugmentWithIrRevised(JengaPrePostFix):
 
 
 # ===== spell_rev Fixes =====
+
 
 class SpellRevAugmentWithSrRevised(JengaPrePostFix):
     """Augments spell_rev with sr_revised."""
@@ -386,8 +393,6 @@ class EetEndPdialogPartialLinesFix(JengaPrePostFix):
         run_config: dict,
     ) -> None:
         fix_pdialog_files_in_directory(run_config["game_dir"])
-
-
 
 
 PRE_FIXES_REGISTRY: Dict[str, Sequence[JengaPrePostFix]] = {

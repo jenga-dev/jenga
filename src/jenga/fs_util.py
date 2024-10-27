@@ -23,6 +23,10 @@ from .config import (
 from .errors import (
     IllformedModArchiveError,
 )
+from .fs_basics import (
+    fuzzy_find,
+    make_all_files_in_dir_writable,
+)
 from .mod_alias_reg import (
     MOD_TO_ALIAS_LIST_REGISTRY,
 )
@@ -30,10 +34,6 @@ from .printing import (
     note_print,
     oper_print,
     sccs_print,
-)
-from .fs_basics import (
-    make_all_files_in_dir_writable,
-    fuzzy_find,
 )
 
 
@@ -135,8 +135,9 @@ def fuzzy_find_file_or_dir(
         ]
     elif archive_search:
         results_and_scores = [
-            res for res in results_and_scores if res[0].endswith(
-                (".zip", ".tar.gz", ".rar"))
+            res
+            for res in results_and_scores
+            if res[0].endswith((".zip", ".tar.gz", ".rar"))
         ]
     print(results_and_scores)
     best_match = results_and_scores[0][0]
@@ -316,11 +317,11 @@ def get_tp2_names_and_paths(
 
 
 _ARCHIVE_MOD_DIR_MAPPERS = {
-    'sr_revised': {
-        'spell_rev': 'sr_revised',
+    "sr_revised": {
+        "spell_rev": "sr_revised",
     },
-    'ir_revised': {
-        'item_rev': 'ir_revised',
+    "ir_revised": {
+        "item_rev": "ir_revised",
     },
 }
 
@@ -605,10 +606,12 @@ def extract_archive_to_extracted_mods_dir(
     mod_dname_mappers = _get_archive_mod_dir_name_mappers(archive_fname_no_ext)
     if mod_dname_mappers is not None:
         primary_mod_dpath = _map_mod_dir_path(
-            primary_mod_dpath, mod_dname_mappers)
+            primary_mod_dpath, mod_dname_mappers
+        )
         for i, dpath in enumerate(additional_mod_dpaths):
             additional_mod_dpaths[i] = _map_mod_dir_path(
-                dpath, mod_dname_mappers)
+                dpath, mod_dname_mappers
+            )
         for k, v in mod_dname_mappers.items():
             if k in tp2_fpath:
                 tp2_fpath = tp2_fpath.replace(k, v, 1)
@@ -904,7 +907,8 @@ def overwrite_game_dir_with_source_dir(
     game_dir = get_game_dir(game_alias, CfgKey.TARGET)
     if game_dir is None:
         raise FileNotFoundError(
-            f"Game directory for '{game_alias}' not found.")
+            f"Game directory for '{game_alias}' not found."
+        )
     source_dir = demand_game_dir_path(game_alias, dir_type=source_dir_type)
     note_print(
         f"Preparing to OVERWRITE the game directory at '{game_dir}' with a "

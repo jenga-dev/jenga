@@ -15,6 +15,9 @@ from .config import (
     demand_extracted_mod_cache_dir_path,
     get_xdg_config_dpath,
 )
+from .fs_basics import (
+    robust_read_lines_from_text_file,
+)
 from .fs_util import (
     get_tp2_names_and_paths,
 )
@@ -22,9 +25,6 @@ from .printing import (
     note_print,
     oper_print,
     sccs_print,
-)
-from .fs_basics import (
-    robust_read_lines_from_text_file,
 )
 
 
