@@ -1,9 +1,9 @@
 """The mod alias registry."""
 
 # stdlib imports
-import re
 import json
 import os
+import re
 from typing import Dict, List, Optional
 
 # local imports
@@ -130,7 +130,7 @@ def add_alias_to_mod(alias: str, mod: str) -> None:
     """
     extra_alias = None
     if _is_string_in_camelcase(alias):
-        extra_alias = re.sub(r"([a-z])([A-Z])","\g<1> \g<2>", alias).lower()
+        extra_alias = re.sub(r"([a-z])([A-Z])", r"\g<1> \g<2>", alias).lower()
     alias = alias.lower().replace('"', "")
     mod = mod.lower()
     ALIAS_TO_MOD_REGISTRY[alias] = mod
@@ -141,21 +141,21 @@ def add_alias_to_mod(alias: str, mod: str) -> None:
     if extra_alias is not None:
         ALIAS_TO_MOD_REGISTRY[extra_alias] = mod
         MOD_TO_ALIAS_LIST_REGISTRY[mod].append(extra_alias)
-    if '-' in alias:
-        MOD_TO_ALIAS_LIST_REGISTRY[mod].append(alias.replace('-', '_'))
-        MOD_TO_ALIAS_LIST_REGISTRY[mod].append(alias.replace('-', ''))
-        ALIAS_TO_MOD_REGISTRY[alias.replace('-', '_')] = mod
-        ALIAS_TO_MOD_REGISTRY[alias.replace('-', '')] = mod
-    if '_' in alias:
-        MOD_TO_ALIAS_LIST_REGISTRY[mod].append(alias.replace('_', '-'))
-        MOD_TO_ALIAS_LIST_REGISTRY[mod].append(alias.replace('_', ''))
-        ALIAS_TO_MOD_REGISTRY[alias.replace('_', '-')] = mod
-        ALIAS_TO_MOD_REGISTRY[alias.replace('_', '')] = mod
-    if ' ' in alias:
-        MOD_TO_ALIAS_LIST_REGISTRY[mod].append(alias.replace(' ', '-'))
-        MOD_TO_ALIAS_LIST_REGISTRY[mod].append(alias.replace(' ', '_'))
-        ALIAS_TO_MOD_REGISTRY[alias.replace(' ', '-')] = mod
-        ALIAS_TO_MOD_REGISTRY[alias.replace(' ', '_')] = mod
+    if "-" in alias:
+        MOD_TO_ALIAS_LIST_REGISTRY[mod].append(alias.replace("-", "_"))
+        MOD_TO_ALIAS_LIST_REGISTRY[mod].append(alias.replace("-", ""))
+        ALIAS_TO_MOD_REGISTRY[alias.replace("-", "_")] = mod
+        ALIAS_TO_MOD_REGISTRY[alias.replace("-", "")] = mod
+    if "_" in alias:
+        MOD_TO_ALIAS_LIST_REGISTRY[mod].append(alias.replace("_", "-"))
+        MOD_TO_ALIAS_LIST_REGISTRY[mod].append(alias.replace("_", ""))
+        ALIAS_TO_MOD_REGISTRY[alias.replace("_", "-")] = mod
+        ALIAS_TO_MOD_REGISTRY[alias.replace("_", "")] = mod
+    if " " in alias:
+        MOD_TO_ALIAS_LIST_REGISTRY[mod].append(alias.replace(" ", "-"))
+        MOD_TO_ALIAS_LIST_REGISTRY[mod].append(alias.replace(" ", "_"))
+        ALIAS_TO_MOD_REGISTRY[alias.replace(" ", "-")] = mod
+        ALIAS_TO_MOD_REGISTRY[alias.replace(" ", "_")] = mod
     MOD_TO_ALIAS_LIST_REGISTRY[mod] = list(
         set(MOD_TO_ALIAS_LIST_REGISTRY[mod])
     )

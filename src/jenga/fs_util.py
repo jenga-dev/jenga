@@ -47,8 +47,7 @@ INSTALL_EXT = [COMMAND_EXT, ".exe"]
 METADATA_EXT = [".ini"]
 KNOWN_EXT = ARCHIVE_EXT + [TP2_EXT] + INSTALL_EXT + METADATA_EXT
 
-KNOWN_PREFIXES = [
-    "mac-", "mac_", "macos-", "macos_", "osx-", "osx_", "setup-"]
+KNOWN_PREFIXES = ["mac-", "mac_", "macos-", "macos_", "osx-", "osx_", "setup-"]
 KNOWN_SUFFIXES = ["-mac", "_mac", "-macos", "_macos", "-osx", "_osx"]
 KNOWN_INFIXES = [
     "mac",
@@ -390,7 +389,7 @@ _VERSION_SUFFIX_REGEX = (
     r"([-|\s|_]?(v|V)?([0-9\.\_\-]+|master|main|alpha|beta|Beta|a|b|rc)+)$"
 )
 _VERSION_SUFFIX_PAT = re.compile(_VERSION_SUFFIX_REGEX)
-_BAD_CHARSET = set(['a', 'b', 'r', 'c'])
+_BAD_CHARSET = set(["a", "b", "r", "c"])
 
 
 def _remove_version_suffix(fname: str) -> str:
@@ -425,7 +424,7 @@ def _peel_affixes_from_fname(fname: str) -> str:
     # 4. Remove prefixes
     for prefix in KNOWN_PREFIXES:
         if fname.lower().startswith(prefix):
-            fname = fname[len(prefix):]
+            fname = fname[len(prefix) :]
             return _peel_affixes_from_fname(fname)
     # 5. Remove suffixes
     for suffix in KNOWN_SUFFIXES:

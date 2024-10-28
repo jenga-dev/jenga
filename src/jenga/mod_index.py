@@ -25,10 +25,10 @@ from .mod_data import (
     JENGA_HINT_FNAME,
     JengaHintKey,
     add_alias_to_mod,
-    get_mod_name_by_alias,
-    dump_aliases_registry_to_config_dir,
-    load_aliases_registry_from_config_dir,
     clear_alias_registries_from_config_dir,
+    dump_aliases_registry_to_config_dir,
+    get_mod_name_by_alias,
+    load_aliases_registry_from_config_dir,
 )
 from .printing import (
     note_print,
@@ -203,7 +203,7 @@ def mod_info_from_dpath(
             res = read_mod_ini_file(ini_fpath)
             data_from_ini.update(res)
     if "author" in data_from_ini:
-        author = data_from_ini.get("author", None)
+        author = data_from_ini.get("author")
     full_name = data_from_ini.get("name", name)
     description = data_from_ini.get("description", "")
     download = data_from_ini.get("download")
@@ -288,7 +288,9 @@ def populate_mod_index_by_dpath(
                 for alias in mod_info.aliases:
                     add_alias_to_mod(alias, mod_info.name)
                 if verbose:
-                    sccs_print(f"Added to the mod index: {mod_key}, {mod_info}")
+                    sccs_print(
+                        f"Added to the mod index: {mod_key}, {mod_info}"
+                    )
     sccs_print("Mod index populated from the extracted mods folder.")
     # write the mod alias registries to files
     clear_alias_registries_from_config_dir()
