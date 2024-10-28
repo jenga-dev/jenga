@@ -41,6 +41,10 @@ from .fs_util import (
     safe_copy_dir_to_game_dir,
     tp2_fpath_from_mod_dpath,
 )
+from .mod_data import (
+    get_mod_name_by_alias,
+    get_aliases_by_mod,
+)
 from .mod_index import (
     get_mod_info,
 )
@@ -69,6 +73,111 @@ class InstallationStatus(Enum):
     SUCCESS = "success"
     WARNINGS = "warnings"
     FAILURE = "failure"
+
+
+def _get_mod_info_from_installed_mods_info(
+    mod_name: str,
+    installed_mods_info: dict,
+) -> Optional[dict]:
+    mod_installation = None
+    try:
+        mod_installation = installed_mods_info[mod_name]
+    except KeyError:
+        uniform_mod_name = get_mod_name_by_alias(mod_name)
+        if not uniform_mod_name:
+            fail_print(
+                f"Could not find a uniform name for mod {mod_name}, and so "
+                "couldn't find its information in the installed mods info."
+            )
+            return None
+        try:
+            mod_installation = installed_mods_info[uniform_mod_name]
+        except KeyError:
+            mod_aliases = get_aliases_by_mod(uniform_mod_name)
+            for alias in mod_aliases:
+                try:
+                    mod_installation = installed_mods_info[alias]
+                    break
+                except KeyError:
+                    continue
+        if not mod_installation:
+            fail_print(
+                f"Could not find information about {mod_name} in the installed "
+                "mods info."
+            )
+        return mod_installation
+
+
+def uninstall_mod(
+    mod_name: str,
+    weidu_exec_path: str,
+    game_install_dir: str,
+    installed_mods_info: dict,
+) -> bool:
+    """Uninstall the mod.
+
+    Parameters
+    ----------
+    mod_name : str
+        The name of the mod.
+    weidu_exec_path : str
+        The path to the WeiDU executable.
+    game_install_dir : str
+        The directory where the game is installed.
+    installed_mods_info : dict
+        The information about the installed mods.
+
+    Returns
+    -------
+    bool
+        Whether the mod was uninstalled successfully.
+
+    """
+    oper_print(f"Uninstalling {mod_name}...")
+    mod_installation = _get_mod_info_from_installed_mods_info(
+        mod_name, installed_mods_info
+    )
+    if not mod_installation:
+        fail_print(
+            f"Could not find information about {mod_name} in the installed mods "
+            "info. Cannot uninstall."
+        )
+        return False
+    tp2_rel_fpath = mod_installation["tp2_rel_fpath"]
+    command = [
+        f'"{weidu_exec_path}"',
+        f'"{tp2_rel_fpath}"',
+        "--uninstall",
+    ]
+    note_print("About to run the following command:")
+    note_print(" ".join(command))
+    note_print("Please confirm the uninstallation by typing 'y'/'yes'.")
+    user_input = input().strip().lower()
+    if user_input not in ("y", "yes"):
+        fail_print("Uninstallation aborted.")
+        return False
+    oper_print(">>> Running command:")
+    oper_print(" ".join(command))
+    proc = subprocess.Popen(
+        " ".join(command),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        errors="replace",
+        shell=True,
+        universal_newlines=True,
+        cwd=game_install_dir,
+    )
+    for stdout_line in proc.stdout:
+        print(stdout_line, end="")
+    proc.stdout.close()
+    returncode = proc.wait()
+
+    if returncode == 0:
+        sccs_print(f"{mod_name} uninstalled successfully.")
+        return True
+    else:
+        fail_print(f"Uninstallation of {mod_name} failed.")
+        return False
 
 
 def execute_mod_installation(
@@ -286,7 +395,7 @@ def mod_is_installed_identically(
     mod_version: str,
     desired_components: List[Dict[str, str]],
     installed_mods_info: Optional[dict] = None,
-) -> bool:
+) -> Tuple[bool, bool]:
     """Check if the mod is installed identically.
 
     Parameters
@@ -308,12 +417,19 @@ def mod_is_installed_identically(
 
     """
     if not installed_mods_info:
-        return False
-    try:
-        mod_installation = installed_mods_info[mod_name]
-    except KeyError:
-        return False
-    print(
+        fail_print(
+            "Cannot check if mod is installed identically without mod install"
+            " information.")
+        return False, False
+    mod_installation = _get_mod_info_from_installed_mods_info(
+        mod_name, installed_mods_info
+    )
+    if not mod_installation:
+        fail_print(
+            "Cannot check if mod is installed identically without mod install"
+            " information.")
+        return False, False
+    oper_print(
         f"Comparing planned {mod_name} installation with version:\n"
         f"{mod_version}\n and components:\n {desired_components}\n"
         f" against install_info:\n {mod_installation}"
@@ -327,11 +443,18 @@ def mod_is_installed_identically(
     version_match = mod_installation["version"] == mod_version
     if mod_installation["version"] == UNVERSIONED_MOD_MARKER:
         version_match = True
-    return (
-        mod_installation["mod"] == mod_name
+    name_match = mod_installation["mod"] == mod_name.lower()
+    comp_match = set(installed_comp_list) == set(desired_comp_list)
+    # print(">>>>>> installed identically debug <<<<<<<<")
+    oper_print(f"name_match: {name_match}")
+    oper_print(f"version_match: {version_match}")
+    oper_print(f"comp_match: {comp_match}")
+    is_installed_identically = (
+        name_match
         and version_match
-        and set(installed_comp_list) == set(desired_comp_list)
+        and comp_match
     )
+    return is_installed_identically, True
 
 
 def _resolve_game_dir(
@@ -674,13 +797,40 @@ def run_build(
                 elif user_input in ("f", "force"):
                     pass
 
-        if skip_installed_mods and mod_is_installed_identically(
-            mod_name, version, components, installed_mods_info
-        ):
+        is_instld_ident, is_instld = mod_is_installed_identically(
+            mod_name, version, components, installed_mods_info)
+        if skip_installed_mods and is_instld_ident:
             note_print(
-                f"{mod_name} is already identically installed, " "skipping..."
+                f"{mod_name} is already identically installed. wkipping..."
             )
             continue
+        if is_instld and not is_instld_ident:
+            note_print(
+                f"{mod_name} is already installed, but not identically. "
+                "Uninstalling..."
+            )
+            if installed_mods_info is None:
+                fail_print(
+                    "Cannot uninstall mod without installed mods information."
+                )
+                write_ongoing_state(build_name, i - 1, new_state_file_path)
+                note_print(f"Build state saved to {new_state_file_path}")
+                sys.exit(1)
+            uninst_sccs = uninstall_mod(
+                mod_name,
+                weidu_exec_path,
+                game_install_dir,
+                installed_mods_info,
+            )
+            if not uninst_sccs:
+                fail_print(
+                    f"Failed to uninstall {mod_name}. Terminating the build "
+                    "process."
+                )
+                write_ongoing_state(build_name, i - 1, new_state_file_path)
+                note_print(f"Build state saved to {new_state_file_path}")
+                sys.exit(1)
+
         log_file = f'setup-{mod_name.lower().replace(" ", "_")}.debug'
 
         # Update Weidu.conf with the language if necessary
@@ -696,7 +846,7 @@ def run_build(
                 f"Mod index preferred, so trying to find mod {mod_name} in the"
                 " mod index..."
             )
-            mod_info = get_mod_info(mod_name)
+            mod_info = get_mod_info(mod_name.lower())
             if mod_info:
                 from_mod_index = True
                 mod_dir = mod_info.extracted_dpath

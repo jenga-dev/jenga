@@ -285,8 +285,16 @@ def populate_mod_index_by_dpath(
                 full_name = mod_info.full_name
                 if full_name is not None and len(full_name) > 0:
                     add_alias_to_mod(full_name, mod_info.name)
+                    mod_info.aliases.append(full_name)
+                tp2_fpath = mod_info.tp2_fpath
+                if tp2_fpath is not None:
+                    tp2_fname = os.path.basename(tp2_fpath)
+                    tp2_fname_no_ext = os.path.splitext(tp2_fname)[0]
+                    add_alias_to_mod(tp2_fname_no_ext, mod_info.name)
+                    mod_info.aliases.append(tp2_fname_no_ext)
                 for alias in mod_info.aliases:
                     add_alias_to_mod(alias, mod_info.name)
+                mod_info.aliases = list(set(mod_info.aliases))
                 if verbose:
                     sccs_print(
                         f"Added to the mod index: {mod_key}, {mod_info}"

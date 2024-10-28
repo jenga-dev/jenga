@@ -7,6 +7,18 @@ from typing import Dict
 UNVERSIONED_MOD_MARKER = "UNVERSIONED"
 
 
+def _get_tp2_rel_path_from_line(line: str) -> str:
+    # Parse the line using regular expressions
+    # line = ~mod_name/tp2_file.TP2~ #language_int #component_number // component_description: version
+    match = re.match(
+        r"~(.+\.TP2)~.*",
+        line,
+    )
+    if match:
+        return match.group(1)
+    return ""
+
+
 def weidu_log_to_build_dict(
     weidu_log_path: str,
 ) -> dict:
@@ -38,15 +50,19 @@ def weidu_log_to_build_dict(
 
             # Parse the line using regular expressions
             match = re.match(
-                r"~([^/]+)/[^~]+~ #(\d+) #(\d+) // (.+): (.+)",
+                r"~(([^/]+)/)?([^~]+)\.TP2~ #(\d+) #(\d+) // (.+): (.+)",
                 line,
             )
             if match:
-                mod_name = match.group(1)
-                language_int = match.group(2)
-                component_number = match.group(3)
-                component_description = match.group(4)
-                version = match.group(5)
+                if match.group(2):
+                    mod_name = match.group(2).lower()
+                else:
+                    mod_name = match.group(3).lower()
+                language_int = match.group(4)
+                component_number = match.group(5)
+                component_description = match.group(6)
+                version = match.group(7)
+                tp2_rel_fpath = _get_tp2_rel_path_from_line(line)
                 if mod_name not in mods_info:
                     mods_info[mod_name] = {
                         "mod": mod_name,
@@ -54,6 +70,7 @@ def weidu_log_to_build_dict(
                         "language_int": language_int,
                         "install_list": [],
                         "components": [],
+                        "tp2_rel_fpath": tp2_rel_fpath,
                     }
                 mods_info[mod_name]["install_list"].append(component_number)
                 mods_info[mod_name]["components"].append(
@@ -65,14 +82,18 @@ def weidu_log_to_build_dict(
                 continue
 
             match2 = re.match(
-                r"~([^/]+)/[^~]+~ #(\d+) #(\d+) // (.+)",
+                r"~(([^/]+)/)?([^~]+)\.TP2~ #(\d+) #(\d+) // (.+)",
                 line,
             )
             if match2:
-                mod_name = match2.group(1)
-                language_int = match2.group(2)
-                component_number = match2.group(3)
-                component_description = match2.group(4)
+                if match2.group(2):
+                    mod_name = match2.group(2).lower()
+                else:
+                    mod_name = match2.group(3).lower()
+                language_int = match2.group(4)
+                component_number = match2.group(5)
+                component_description = match2.group(6)
+                tp2_rel_fpath = _get_tp2_rel_path_from_line(line)
                 if mod_name not in mods_info:
                     mods_info[mod_name] = {
                         "mod": mod_name,
@@ -80,6 +101,7 @@ def weidu_log_to_build_dict(
                         "language_int": language_int,
                         "install_list": [],
                         "components": [],
+                        "tp2_rel_fpath": tp2_rel_fpath,
                     }
                 mods_info[mod_name]["install_list"].append(component_number)
                 mods_info[mod_name]["components"].append(

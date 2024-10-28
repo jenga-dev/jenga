@@ -388,6 +388,9 @@ _BAD_CHARSET = set(["a", "b", "r", "c"])
 
 def _remove_version_suffix(fname: str) -> str:
     """Remove the version suffix from a file name."""
+    lfname = fname.lower()
+    if lfname.endswith("bg1") or lfname.endswith("bg2"):
+        return fname
     match = _VERSION_SUFFIX_PAT.search(fname)
     if match is None:
         return fname
