@@ -445,13 +445,13 @@ def mod_is_installed_identically(
     version_match = mod_installation["version"] == mod_version
     if mod_installation["version"] == UNVERSIONED_MOD_MARKER:
         version_match = True
-    name_match = mod_installation["mod"] == mod_name.lower()
+    # name_match = mod_installation["mod"] == mod_name.lower()
     comp_match = set(installed_comp_list) == set(desired_comp_list)
     # print(">>>>>> installed identically debug <<<<<<<<")
-    oper_print(f"name_match: {name_match}")
+    # oper_print(f"name_match: {name_match}")
     oper_print(f"version_match: {version_match}")
     oper_print(f"comp_match: {comp_match}")
-    is_installed_identically = name_match and version_match and comp_match
+    is_installed_identically = version_match and comp_match
     return is_installed_identically, True
 
 
@@ -869,7 +869,7 @@ def run_build(
                         f"Copied tp2 file to game directory:\n"
                         f"{target_tp2_path}"
                     )
-                elif str(tp2_dname) == mod_dir:
+                elif str(tp2_dpath) == mod_dir:
                     # no need to copy tp2 file, it's already in the mod dir
                     target_tp2_path = os.path.join(target_mod_dir, tp2_fname)
                 else:
