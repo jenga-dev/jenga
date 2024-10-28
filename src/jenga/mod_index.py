@@ -5,7 +5,7 @@ import json
 import os
 import re
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 # 3rd party imports
 from rich.progress import track
@@ -22,6 +22,9 @@ from .fs_util import (
     get_tp2_names_and_paths,
 )
 from .mod_data import (
+    add_alias_to_mod,
+    dump_aliases_registry_to_config_dir,
+    load_aliases_registry_from_config_dir,
     JENGA_HINT_FNAME,
     JengaHintKey,
 )
@@ -37,11 +40,18 @@ class ModInfo:
     """A simple mod info inferred from extracted mods."""
 
     name: str
+    full_name: str
     version: str
     author: str
     description: str
     extracted_dpath: str
     tp2_fpath: str
+    aliases: List[str]
+    download: Optional[str] = None
+    label_type: Optional[str] = None
+    mod_type: Optional[str] = None
+    before: Optional[str] = None
+    after: Optional[str] = None
 
 
 MOD_INDEX: Dict[str, ModInfo] = {}
@@ -58,6 +68,67 @@ def get_mod_info(mod_name: str) -> Optional[ModInfo]:
         except KeyError:
             note_print(f"Mod {mod_name} not found in the mod index.")
             return None
+
+
+def read_mod_ini_file(ini_fpath: str) -> Dict[str, str]:
+    """Read the mod .ini file.
+
+    Parameters
+    ----------
+    ini_fpath : str
+        The path to the mod .ini file.
+
+    Returns
+    -------
+    Dict[str, str]
+        The key-value pairs in the .ini file.
+
+    """
+    ini_lines = robust_read_lines_from_text_file(ini_fpath)
+    metadata_section = False
+    key_value_pairs = {}
+    for line in ini_lines:
+        if metadata_section:
+            if "=" in line:
+                # split on the firt occurence of "="
+                key, value = line.split("=", 1)
+                key_value_pairs[key.strip().lower()] = value.strip()
+        if "[Metadata]" in line:
+            metadata_section = True
+    return key_value_pairs
+
+
+def read_mod_tp2_file(tp2_fpath: str) -> Dict[str, Optional[str]]:
+    """Read the mod .tp2 file.
+
+    Parameters
+    ----------
+    tp2_fpath : str
+        The path to the mod .tp2 file.
+
+    Returns
+    -------
+    Dict[str, str]
+        The key-value pairs in the .tp2 file.
+
+    """
+    # - version: the version string in the .tp2 file
+    #            it is a line of the form VERSION ~0.91.1~
+    # - author: the author string in the .tp2 file
+    #           format: AUTHOR ~SubtleD and Grammarsalad~
+    tp2_lines = robust_read_lines_from_text_file(tp2_fpath)
+    version = None
+    author = None
+    ver_pat = re.compile(r"VERSION\s*\~([a-zA-Z0-9\.\_\-]+)\~")
+    author_pat = re.compile(r"AUTHOR\s*\~([a-zA-Z0-9\.\_\-\s]+)\~")
+    for line in tp2_lines:
+        ver_match = ver_pat.match(line)
+        if ver_match:
+            version = ver_match.group(1)
+        author_match = author_pat.match(line)
+        if author_match:
+            author = author_match.group(1)
+    return {"version": version, "author": author}
 
 
 def mod_info_from_dpath(
@@ -81,6 +152,9 @@ def mod_info_from_dpath(
     hint = {}
     if os.path.exists(hint_fpath):
         hint = json.load(open(hint_fpath, "r"))
+    aliases: List[str] = []
+    if hint.get(JengaHintKey.ALIASES):
+        aliases = hint[JengaHintKey.ALIASES]
     # How mod attributes are determined:
     # - name: the name (without extension) of the shortest-named
     #         .tp2 file in the folder (including subfolders)
@@ -110,58 +184,47 @@ def mod_info_from_dpath(
                 name = tp2_fname
         if tp2_fpath is None:
             tp2_fpath = tp2_fnames_to_fpaths[tp2_fname]
-    # get the version of the mod
-    # - version: the version string in the .tp2 file
-    #            it is a line of the form VERSION ~0.91.1~
-    version = ""
-    pattern = re.compile(r"VERSION\s*\~([a-zA-Z0-9\.\_\-]+)\~")
-    tp2_lines = robust_read_lines_from_text_file(tp2_fpath)
-    for line in tp2_lines:
-        match = pattern.match(line)
-        if match:
-            version = match.group(1)
-            break
-    # get the author of the mod
-    # - author: the author string in the .tp2 file
-    #           format: AUTHOR ~SubtleD and Grammarsalad~
-    author = ""
-    pattern = re.compile(r"AUTHOR\s*\~([a-zA-Z0-9\.\_\-\s]+)\~")
-    for line in tp2_lines:
-        match = pattern.match(line)
-        if match:
-            author = match.group(1)
-            break
-    # get the description of the mod
-    # - description: if the root of the folder contains an .ini file,
-    #                the value of the Description key in the [Metadata] section
-    #                of the .ini file. Otherwise, the empty string.
-    description = ""
+    data_from_tp2 = read_mod_tp2_file(tp2_fpath)
+    author = data_from_tp2["author"]
+    version = data_from_tp2["version"]
     # search for an .ini file in the root of the folder
     ini_fpaths = []
+    data_from_ini = {}
     for entry in os.scandir(extracted_mod_dpath):
         if entry.is_file() and entry.name.endswith(".ini"):
             ini_fpaths.append(entry.path)
     if len(ini_fpaths) > 0:
         for ini_fpath in ini_fpaths:
-            # read the first .ini file found
-            ini_lines = robust_read_lines_from_text_file(ini_fpath)
-            # search for the [Metadata] section
-            metadata_section = False
-            for line in ini_lines:
-                if metadata_section:
-                    if line.startswith("Description"):
-                        description = line.split("=")[1].strip()
-                if "[Metadata]" in line:
-                    metadata_section = True
-    # - extracted_dpath: the path to the folder
+            res = read_mod_ini_file(ini_fpath)
+            data_from_ini.update(res)
+    if 'author' in data_from_ini:
+        author = data_from_ini['author']
+    full_name = data_from_ini.get('name', name)
+    description = data_from_ini.get('description', "")
+    download = data_from_ini.get('download', None)
+    label_type = data_from_ini.get('labeltype', None)
+    mod_type = data_from_ini.get('type', None)
+    before = data_from_ini.get('before', None)
+    after = data_from_ini.get('after', None)
+    if version is None:
+        version = ""
+    if author is None:
+        author = ""
     # return a ModInfo object
     return ModInfo(
         name=name,
+        full_name=full_name,
         version=version,
         author=author,
         description=description,
         extracted_dpath=extracted_mod_dpath,
         tp2_fpath=tp2_fpath,
+        aliases=aliases,
+        download=download,
+        label_type=label_type,
+        mod_type=mod_type,
+        before=before,
+        after=after,
     )
 
 
@@ -202,22 +265,32 @@ def populate_mod_index_by_dpath(
         mod_info = None
         if fof.is_dir():
             if _is_likely_mod_dir_name(fof.name):
-                try:
-                    mod_info = mod_info_from_dpath(fof.path)
-                except Exception as e:
-                    note_print(
-                        f"Error while processing mod dir at {fof.path}: {e}"
-                        "\nSkipping this mod."
-                    )
+                # try:
+                mod_info = mod_info_from_dpath(fof.path)
+                # except Exception as e:
+                #     note_print(
+                #         f"Error while processing mod dir at {fof.path}: {e}"
+                #         "\nSkipping this mod."
+                #     )
             if mod_info is not None:
                 MOD_INDEX[mod_info.name.lower()] = mod_info
+                full_name = mod_info.full_name
+                if full_name is not None and len(full_name) > 0:
+                    add_alias_to_mod(full_name, mod_info.name)
+                for alias in mod_info.aliases:
+                    add_alias_to_mod(alias, mod_info.name)
                 if verbose:
                     sccs_print(f"Added to the mod index: {mod_info}")
     sccs_print("Mod index populated from the extracted mods folder.")
+    # write the mod alias registries to files
+    dump_aliases_registry_to_config_dir()
     # write the mod index to a file
     dump_dict = {
         name.lower(): info.__dict__ for name, info in MOD_INDEX.items()
     }
+    # delete the file if it exists
+    if os.path.exists(MOD_INDEX_FPATH):
+        os.remove(MOD_INDEX_FPATH)
     with open(MOD_INDEX_FPATH, "w") as f:
         json.dump(dump_dict, f, indent=4)
     sccs_print("Mod index written to config directory.")
@@ -238,6 +311,7 @@ def load_mod_index_from_config() -> None:
 
 
 load_mod_index_from_config()
+load_aliases_registry_from_config_dir()
 
 
 def populate_mod_index_from_extracted_mods_dir() -> None:

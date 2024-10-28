@@ -2,6 +2,7 @@
 
 # Standard library imports
 import json
+import re
 import os
 import shutil
 import tempfile
@@ -40,6 +41,22 @@ from .printing import (
 )
 
 
+ARCHIVE_EXT = [".zip", ".tar.gz", ".rar"]
+TP2_EXT = ".tp2"
+COMMAND_EXT = ".command"
+INSTALL_EXT = [COMMAND_EXT, ".exe"]
+METADATA_EXT = [".ini"]
+KNOWN_EXT = ARCHIVE_EXT + [TP2_EXT] + INSTALL_EXT + METADATA_EXT
+
+KNOWN_PREFIXES = ["mac-", "mac_", "macos-", "macos_", "osx-", "osx_"]
+KNOWN_SUFFIXES = ["-mac", "_mac", "-macos", "_macos", "-osx", "_osx"]
+KNOWN_INFIXES = [
+    "mac", "osx", "mod", "modification", "eet", "weidu", "setup", "install",
+    "bg1", "bg1ee", "bgiee", "bg2", "bgii", "bg2ee", "bgiiee", "bgee",
+    "bgt", "tutu", "sod", "eet",
+]
+
+
 def fuzzy_find_file_or_dir(
     directory: str,
     name: str,
@@ -76,21 +93,21 @@ def fuzzy_find_file_or_dir(
                 candidates.append(fof)
         if len(candidates) == 1:
             if setup_file_search:
-                if candidates[0].endswith(".tp2"):
+                if candidates[0].endswith(TP2_EXT):
                     return os.path.join(directory, candidates[0])
             if archive_search:
-                if candidates[0].endswith((".zip", ".tar.gz", ".rar")):
+                if candidates[0].endswith(ARCHIVE_EXT):
                     return os.path.join(directory, candidates[0])
         low_candidates = [cand.lower() for cand in candidates]
         if setup_file_search:
             low_candidates = [
-                cand for cand in low_candidates if cand.endswith(".tp2")
+                cand for cand in low_candidates if cand.endswith(TP2_EXT)
             ]
         elif archive_search:
             low_candidates = [
                 cand
                 for cand in low_candidates
-                if cand.endswith((".zip", ".tar.gz", ".rar"))
+                if cand.endswith(ARCHIVE_EXT)
             ]
         result = process.extractOne(
             name.lower(), low_candidates, scorer=fuzz.ratio
@@ -105,7 +122,7 @@ def fuzzy_find_file_or_dir(
     if name.lower() in MOD_TO_ALIAS_LIST_REGISTRY:
         search_aliases = MOD_TO_ALIAS_LIST_REGISTRY[name.lower()]
     if archive_search:
-        file_types = [".zip", ".tar.gz", ".rar"]
+        file_types = ARCHIVE_EXT 
         saliases = search_aliases.copy()
         search_aliases.clear()
         for alias in saliases:
@@ -113,7 +130,7 @@ def fuzzy_find_file_or_dir(
             search_aliases.append(f"osx-{alias}")
             search_aliases.append(f"mac-{alias}")
     elif setup_file_search:
-        file_types = [".tp2"]
+        file_types = [TP2_EXT]
         saliases = search_aliases.copy()
         search_aliases.clear()
         for alias in saliases:
@@ -134,13 +151,13 @@ def fuzzy_find_file_or_dir(
     results_and_scores.sort(key=lambda x: x[1], reverse=True)
     if setup_file_search:
         results_and_scores = [
-            res for res in results_and_scores if res[0].endswith(".tp2")
+            res for res in results_and_scores if res[0].endswith(TP2_EXT)
         ]
     elif archive_search:
         results_and_scores = [
             res
             for res in results_and_scores
-            if res[0].endswith((".zip", ".tar.gz", ".rar"))
+            if res[0].endswith(ARCHIVE_EXT)
         ]
     print(results_and_scores)
     best_match = results_and_scores[0][0]
@@ -173,28 +190,33 @@ class ExtractionType(Enum):
     def __str__(self):
         if self == ExtractionType.TYPE_A:
             return (
-                "<ExtractionType.TYPE_A: Single mod folder with .tp2 file "
-                "inside>"
+                "<ExtractionType.TYPE_A: Single mod folder with a .tp2 file "
+                "inside.>"
             )
         if self == ExtractionType.TYPE_B:
             return (
                 "<ExtractionType.TYPE_B: One or more .tp2 file, no folders in"
-                " the archive>"
+                " the archive.>"
             )
         if self == ExtractionType.TYPE_C:
             return (
                 "<ExtractionType.TYPE_C: One mod folder, no .tp2 file inside;"
-                " tp2 file/s next to it>"
+                " tp2 file/s next to it.>"
             )
         if self == ExtractionType.TYPE_D:
             return (
                 "<ExtractionType.TYPE_D: Multiple mod folders, each "
-                "containing a .tp2 file>"
+                "containing a .tp2 file.>"
             )
         if self == ExtractionType.TYPE_E:
             return (
                 "<ExtractionType.TYPE_E: Multiple mod folders; tp2 file/s "
-                "next to them>"
+                "next to them.>"
+            )
+        if self == ExtractionType.TYPE_F:
+            return (
+                "<ExtractionType.TYPE_F: One mod dir, .tp2+.command/.exe files"
+                " next to it.>"
             )
         return self.name
 
@@ -206,6 +228,7 @@ class ExtractionType(Enum):
     TYPE_C = 3  # One mod folder, no .tp2 file inside; tp2 file/s next to it
     TYPE_D = 4  # Multiple mod folders, each containing a .tp2 file
     TYPE_E = 5  # Multiple mod folders; tp2 file/s next to them
+    TYPE_F = 6  # One mod dir, .tp2+.command/.exe files next to it
 
 
 @dataclass
@@ -244,7 +267,7 @@ def _get_tp2_fpaths(
     """
     # select the most closely named .tp2 file in the primary mod folder
     mod_tp2_fnames = [
-        f for f in os.listdir(mod_temp_dpath) if f.lower().endswith(".tp2")
+        f for f in os.listdir(mod_temp_dpath) if f.lower().endswith(TP2_EXT)
     ]
     res = process.extractOne(mod_name, mod_tp2_fnames)
     if res is not None:
@@ -313,7 +336,7 @@ def get_tp2_names_and_paths(
     for root, _, files in os.walk(dir_path):
         for f in files:
             _print(f)
-            if f.lower().endswith(".tp2"):
+            if f.lower().endswith(TP2_EXT):
                 fname = os.path.splitext(f)[0]
                 mod_tp2_fnames[fname] = os.path.join(root, f)
     return mod_tp2_fnames
@@ -348,6 +371,62 @@ def _map_mod_dir_path(
     if mod_dname in dname_mappers:
         mod_dname = dname_mappers[mod_dname]
     return os.path.join(mod_parent_dpath, mod_dname)
+
+
+VERSION_SUFFIX_REGEX = (
+    r"([-|\s|_]?(v|V)?([0-9\.\_\-]+|master|main|alpha|beta|Beta|a|b|rc)+)$")
+
+
+def _peel_affixes_from_fname(fname: str) -> str:
+    """Peel affixes from a file name."""
+    # 1. Deal with file extensions
+    for ext in KNOWN_EXT:
+        if fname.lower().endswith(ext):
+            fname = fname[: -len(ext)]
+            return _peel_affixes_from_fname(fname)
+    # 2. Remove anything after -for- or _for_
+    for infix in ["-for-", "_for_"]:
+        if infix in fname.lower():
+            fname = fname[: fname.index(infix)]
+            return _peel_affixes_from_fname(fname)
+    # 3. Remove version numbers
+    res = re.sub(VERSION_SUFFIX_REGEX, "", fname)
+    if res != fname:
+        return _peel_affixes_from_fname(res)
+    # 4. Remove prefixes
+    for prefix in KNOWN_PREFIXES:
+        if fname.lower().startswith(prefix):
+            fname = fname[len(prefix):]
+            return _peel_affixes_from_fname(fname)
+    # 5. Remove suffixes
+    for suffix in KNOWN_SUFFIXES:
+        if fname.lower().endswith(suffix):
+            fname = fname[: -len(suffix)]
+            return _peel_affixes_from_fname(fname)
+    # 6. Remove infixes
+    for infix in KNOWN_INFIXES:
+        rgx = r"[-|\s|_]{infix}[-|\s|_|\.]".format(infix=infix)
+        pat = re.compile(rgx, flags=re.IGNORECASE)
+        res = pat.sub("", fname)
+        if res != fname:
+            return _peel_affixes_from_fname(res)
+    return fname
+
+
+def _get_alias_from_setup_fpath(setup_fpath: str) -> str:
+    """Get a mod name alias from a setup file path."""
+    setup_fname = os.path.basename(setup_fpath)
+    clean_setup_name = _peel_affixes_from_fname(setup_fname)
+    return clean_setup_name
+
+
+def _get_alias_from_unarchived_dpath(unarchived_dpath: str) -> Optional[str]:
+    """Get a mod name alias from an unarchived directory path."""
+    unarchived_dname = os.path.basename(unarchived_dpath)
+    if unarchived_dname.lower().startswith('tmp'):
+        return None
+    clean_unarchived_name = _peel_affixes_from_fname(unarchived_dname)
+    return clean_unarchived_name
 
 
 def extract_archive_to_extracted_mods_dir(
@@ -427,10 +506,10 @@ def extract_archive_to_extracted_mods_dir(
         unarchived_dpath = temp_dir
     archive_file_and_dir_names = os.listdir(unarchived_dpath)
     archive_tp2_fnames = [
-        f for f in archive_file_and_dir_names if f.endswith(".tp2")
+        f for f in archive_file_and_dir_names if f.endswith(TP2_EXT)
     ]
     archive_command_fnames = [
-        f for f in archive_file_and_dir_names if f.endswith(".command")
+        f for f in archive_file_and_dir_names if f.endswith("COMMAND_EXT")
     ]
     archive_dnames = [
         f
@@ -448,13 +527,17 @@ def extract_archive_to_extracted_mods_dir(
     additional_tp2_fpaths = []
     additional_temp_fpaths = []
     additional_fpaths = []
+    aliases = []
 
     if len(archive_dnames) == 1:
         # we have a single folder in the archive...
         mod_dname = archive_dnames[0]
+        res = _get_alias_from_unarchived_dpath(mod_dname)
+        if res:
+            aliases.append(res)
         mod_dpath = os.path.join(unarchived_dpath, mod_dname)
         tp2_fnames = [
-            f for f in os.listdir(mod_dpath) if f.lower().endswith(".tp2")
+            f for f in os.listdir(mod_dpath) if f.lower().endswith(TP2_EXT)
         ]
         if len(tp2_fnames) > 0:
             # ... and it contains at least one .tp2 file!
@@ -474,20 +557,48 @@ def extract_archive_to_extracted_mods_dir(
             if len(archive_tp2_fnames) > 0:
                 # ... however, there are .tp2 files directly in the unarchived
                 # dir!
-                mod_structure_type = ExtractionType.TYPE_C
-                primary_mod_temp_dpath = unarchived_dpath
-                primary_mod_dpath = os.path.join(
-                    extracted_mods_dir_path, archive_fname_no_ext
-                )
-                res = _get_tp2_fpaths(
-                    unarchived_dpath,
-                    primary_mod_dpath,
-                    mod_name,
-                    archive_tp2_fnames,
-                )
-                tp2_temp_fpath, tp2_fpath = res[:2]
-                additional_tp2_temp_fpaths = res[2]
-                additional_tp2_fpaths = res[3]
+                if len(archive_command_fnames) > 0:
+                    # and also command files in the unarchived dir
+                    mod_structure_type = ExtractionType.TYPE_F
+                    mod_dname = archive_dnames[0]
+                    mod_name = mod_dname
+                    primary_mod_temp_dpath = os.path.join(
+                        unarchived_dpath, mod_dname
+                    )
+                    primary_mod_dpath = os.path.join(
+                        extracted_mods_dir_path, mod_dname
+                    )
+                    res = process.extractOne(mod_name, archive_tp2_fnames)
+                    tp2_fname = archive_tp2_fnames[0]
+                    if res is not None:
+                        tp2_fname = res[0]
+                    tp2_temp_fpath = os.path.join(unarchived_dpath, res[0])
+                    tp2_fpath = os.path.join(extracted_mods_dir_path, res[0])
+                    additional_tp2_temp_fpaths = [
+                        os.path.join(unarchived_dpath, f)
+                        for f in archive_tp2_fnames
+                        if f != tp2_fname
+                    ]
+                    additional_tp2_fpaths = [
+                        os.path.join(extracted_mods_dir_path, f)
+                        for f in archive_tp2_fnames
+                        if f != tp2_fname
+                    ]
+                else:
+                    mod_structure_type = ExtractionType.TYPE_C
+                    primary_mod_temp_dpath = unarchived_dpath
+                    primary_mod_dpath = os.path.join(
+                        extracted_mods_dir_path, archive_fname_no_ext
+                    )
+                    res = _get_tp2_fpaths(
+                        unarchived_dpath,
+                        primary_mod_dpath,
+                        mod_name,
+                        archive_tp2_fnames,
+                    )
+                    tp2_temp_fpath, tp2_fpath = res[:2]
+                    additional_tp2_temp_fpaths = res[2]
+                    additional_tp2_fpaths = res[3]
             else:
                 # no .tp2 files in the unarchived dir either :(
                 raise IllformedModArchiveError(
@@ -543,7 +654,7 @@ def extract_archive_to_extracted_mods_dir(
                 f
                 for f in archive_dnames
                 if any(
-                    f.endswith(".tp2")
+                    f.endswith(TP2_EXT)
                     for f in os.listdir(os.path.join(unarchived_dpath, f))
                 )
             ]
@@ -584,7 +695,7 @@ def extract_archive_to_extracted_mods_dir(
             tp2_fnames = [
                 f
                 for f in os.listdir(primary_mod_temp_dpath)
-                if f.endswith(".tp2")
+                if f.endswith(TP2_EXT)
             ]
             res = _get_tp2_fpaths(
                 primary_mod_temp_dpath, primary_mod_dpath, mod_name, tp2_fnames
@@ -676,6 +787,16 @@ def extract_archive_to_extracted_mods_dir(
                 f"'{extracted_mods_dir_path}'."
             )
 
+    aliases.append(mod_name)
+    aliases.append(_get_alias_from_setup_fpath(tp2_fpath))
+    aliases.append(_get_alias_from_setup_fpath(archive_fpath))
+    res = _get_alias_from_unarchived_dpath(unarchived_dpath)
+    if res:
+        aliases.append(res)
+    if len(archive_command_fnames) == 1:
+        aliases.append(_get_alias_from_setup_fpath(archive_command_fnames[0]))
+    aliases = list(set(aliases))
+
     # Step 7: Write a Jenga hint file into the mod folder
     hint_fpath = os.path.join(primary_mod_dpath, JENGA_HINT_FNAME)
     hint_data = {
@@ -683,6 +804,7 @@ def extract_archive_to_extracted_mods_dir(
         JengaHintKey.ARCHIVE_FNAME: archive_fname,
         JengaHintKey.EXTRACTION_TYPE: mod_structure_type.name,
         JengaHintKey.MAIN_TP2_FPATH: tp2_fpath,
+        JengaHintKey.ALIASES: aliases,
     }
     json.dump(hint_data, open(hint_fpath, "w"), indent=4)
 
@@ -820,12 +942,11 @@ def extract_zipped_mods_in_dir_to_dir(
         The path to the directory containing the extracted mods.
 
     """
-    SUPPORTED_EXT = [".zip", ".tar.gz", ".rar"]
     dir_items = os.listdir(zip_mods_dpath)
     archives = [
         item
         for item in dir_items
-        if any(item.endswith(ext) for ext in SUPPORTED_EXT)
+        if any(item.endswith(ext) for ext in ARCHIVE_EXT)
     ]
     if archive_name_inclusion_criteria is not None:
         archives = [
