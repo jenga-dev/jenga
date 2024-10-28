@@ -47,7 +47,8 @@ INSTALL_EXT = [COMMAND_EXT, ".exe"]
 METADATA_EXT = [".ini"]
 KNOWN_EXT = ARCHIVE_EXT + [TP2_EXT] + INSTALL_EXT + METADATA_EXT
 
-KNOWN_PREFIXES = ["mac-", "mac_", "macos-", "macos_", "osx-", "osx_"]
+KNOWN_PREFIXES = [
+    "mac-", "mac_", "macos-", "macos_", "osx-", "osx_", "setup-"]
 KNOWN_SUFFIXES = ["-mac", "_mac", "-macos", "_macos", "-osx", "_osx"]
 KNOWN_INFIXES = [
     "mac",
@@ -385,9 +386,24 @@ def _map_mod_dir_path(
     return os.path.join(mod_parent_dpath, mod_dname)
 
 
-VERSION_SUFFIX_REGEX = (
+_VERSION_SUFFIX_REGEX = (
     r"([-|\s|_]?(v|V)?([0-9\.\_\-]+|master|main|alpha|beta|Beta|a|b|rc)+)$"
 )
+_VERSION_SUFFIX_PAT = re.compile(_VERSION_SUFFIX_REGEX)
+_BAD_CHARSET = set(['a', 'b', 'r', 'c'])
+
+
+def _remove_version_suffix(fname: str) -> str:
+    """Remove the version suffix from a file name."""
+    match = _VERSION_SUFFIX_PAT.search(fname)
+    if match is None:
+        return fname
+    vcomp = match.group(0).lower()
+    charset = set([c for c in vcomp])
+    # if charset is a subset of _BAD_CHARSET, then this isi a bad match
+    if charset.issubset(_BAD_CHARSET):
+        return fname
+    return _VERSION_SUFFIX_PAT.sub("", fname)
 
 
 def _peel_affixes_from_fname(fname: str) -> str:
@@ -403,13 +419,13 @@ def _peel_affixes_from_fname(fname: str) -> str:
             fname = fname[: fname.index(infix)]
             return _peel_affixes_from_fname(fname)
     # 3. Remove version numbers
-    res = re.sub(VERSION_SUFFIX_REGEX, "", fname)
+    res = _remove_version_suffix(fname)
     if res != fname:
         return _peel_affixes_from_fname(res)
     # 4. Remove prefixes
     for prefix in KNOWN_PREFIXES:
         if fname.lower().startswith(prefix):
-            fname = fname[len(prefix) :]
+            fname = fname[len(prefix):]
             return _peel_affixes_from_fname(fname)
     # 5. Remove suffixes
     for suffix in KNOWN_SUFFIXES:
@@ -545,6 +561,7 @@ def extract_archive_to_extracted_mods_dir(
     if len(archive_dnames) == 1:
         # we have a single folder in the archive...
         mod_dname = archive_dnames[0]
+        print(f"Mod dname: {mod_dname}")
         res = _get_alias_from_unarchived_dpath(mod_dname)
         if res:
             aliases.append(res)
@@ -555,6 +572,7 @@ def extract_archive_to_extracted_mods_dir(
         if len(tp2_fnames) > 0:
             # ... and it contains at least one .tp2 file!
             mod_structure_type = ExtractionType.TYPE_A
+            mod_name = _get_alias_from_setup_fpath(mod_dname)
             primary_mod_temp_dpath = mod_dpath
             primary_mod_dpath = os.path.join(
                 extracted_mods_dir_path, mod_dname
@@ -570,11 +588,11 @@ def extract_archive_to_extracted_mods_dir(
             if len(archive_tp2_fnames) > 0:
                 # ... however, there are .tp2 files directly in the unarchived
                 # dir!
+                mod_dname = archive_dnames[0]
+                mod_name = _get_alias_from_setup_fpath(mod_dname)
                 if len(archive_command_fnames) > 0:
                     # and also command files in the unarchived dir
                     mod_structure_type = ExtractionType.TYPE_F
-                    mod_dname = archive_dnames[0]
-                    mod_name = mod_dname
                     primary_mod_temp_dpath = os.path.join(
                         unarchived_dpath, mod_dname
                     )
@@ -809,6 +827,8 @@ def extract_archive_to_extracted_mods_dir(
     if len(archive_command_fnames) == 1:
         aliases.append(_get_alias_from_setup_fpath(archive_command_fnames[0]))
     aliases = list(set(aliases))
+
+    mod_name = _get_alias_from_setup_fpath(mod_name)
 
     # Step 7: Write a Jenga hint file into the mod folder
     hint_fpath = os.path.join(primary_mod_dpath, JENGA_HINT_FNAME)

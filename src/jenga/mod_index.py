@@ -25,8 +25,10 @@ from .mod_data import (
     JENGA_HINT_FNAME,
     JengaHintKey,
     add_alias_to_mod,
+    get_mod_name_by_alias,
     dump_aliases_registry_to_config_dir,
     load_aliases_registry_from_config_dir,
+    clear_alias_registries_from_config_dir,
 )
 from .printing import (
     note_print,
@@ -63,8 +65,11 @@ def get_mod_info(mod_name: str) -> Optional[ModInfo]:
         return MOD_INDEX[mod_name.lower()]
     except KeyError:
         try:
-            prefixed_mod_name = f"setup-{mod_name}"
-            return MOD_INDEX[prefixed_mod_name.lower()]
+            resolved_mod_name = get_mod_name_by_alias(mod_name)
+            if resolved_mod_name is None:
+                note_print(f"Mod {mod_name} not found in the mod index.")
+                return None
+            return MOD_INDEX[resolved_mod_name.lower()]
         except KeyError:
             note_print(f"Mod {mod_name} not found in the mod index.")
             return None
@@ -198,7 +203,7 @@ def mod_info_from_dpath(
             res = read_mod_ini_file(ini_fpath)
             data_from_ini.update(res)
     if "author" in data_from_ini:
-        author = data_from_ini["author"]
+        author = data_from_ini.get("author", None)
     full_name = data_from_ini.get("name", name)
     description = data_from_ini.get("description", "")
     download = data_from_ini.get("download")
@@ -254,6 +259,8 @@ def populate_mod_index_by_dpath(
     verbose: Optional[bool] = False,
 ) -> None:
     """Populate mod index from extracted mods."""
+    global MOD_INDEX
+    MOD_INDEX = {}
     # iterate over all folders in extracted_mods_dpath,
     # and for each folder, determine mod attributes like so:
     oper_print("Populating mod index from the extracted mods folder...")
@@ -273,16 +280,18 @@ def populate_mod_index_by_dpath(
                 #         "\nSkipping this mod."
                 #     )
             if mod_info is not None:
-                MOD_INDEX[mod_info.name.lower()] = mod_info
+                mod_key = mod_info.name.lower()
+                MOD_INDEX[mod_key] = mod_info
                 full_name = mod_info.full_name
                 if full_name is not None and len(full_name) > 0:
                     add_alias_to_mod(full_name, mod_info.name)
                 for alias in mod_info.aliases:
                     add_alias_to_mod(alias, mod_info.name)
                 if verbose:
-                    sccs_print(f"Added to the mod index: {mod_info}")
+                    sccs_print(f"Added to the mod index: {mod_key}, {mod_info}")
     sccs_print("Mod index populated from the extracted mods folder.")
     # write the mod alias registries to files
+    clear_alias_registries_from_config_dir()
     dump_aliases_registry_to_config_dir()
     # write the mod index to a file
     dump_dict = {
@@ -291,13 +300,17 @@ def populate_mod_index_by_dpath(
     # delete the file if it exists
     if os.path.exists(MOD_INDEX_FPATH):
         os.remove(MOD_INDEX_FPATH)
+    # print("\n\n======= MOD INDEX DUMP DEBUG ===============")
+    # print(dump_dict)
+    # print("============================================\n\n")
     with open(MOD_INDEX_FPATH, "w") as f:
         json.dump(dump_dict, f, indent=4)
-    sccs_print("Mod index written to config directory.")
+    sccs_print(f"Mod index written to {MOD_INDEX_FPATH}")
 
 
 def load_mod_index_from_config() -> None:
     """Load mod index from config."""
+    global MOD_INDEX
     if not os.path.exists(MOD_INDEX_FPATH) or (
         not os.path.isfile(MOD_INDEX_FPATH)
     ):
@@ -305,6 +318,10 @@ def load_mod_index_from_config() -> None:
     oper_print("Attempting to load mod index from config directory...")
     with open(MOD_INDEX_FPATH, "r") as f:
         mod_index = json.load(f)
+    if len(mod_index) == 0:
+        note_print("Mod index file is empty. Skipping loading into memory.")
+        return
+    MOD_INDEX = {}
     for name, info in mod_index.items():
         MOD_INDEX[name] = ModInfo(**info)
     sccs_print("Mod index loaded from config directory.")
@@ -314,6 +331,11 @@ load_mod_index_from_config()
 load_aliases_registry_from_config_dir()
 
 
-def populate_mod_index_from_extracted_mods_dir() -> None:
+def populate_mod_index_from_extracted_mods_dir(
+    verbose: Optional[bool] = False,
+) -> None:
     """Populate mod index from the extracted mods directory."""
-    populate_mod_index_by_dpath(demand_extracted_mod_cache_dir_path())
+    populate_mod_index_by_dpath(
+        extracted_mods_dpath=demand_extracted_mod_cache_dir_path(),
+        verbose=verbose,
+    )

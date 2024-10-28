@@ -173,9 +173,18 @@ def extract_some_zipped_mods_to_extracted_mods(
 
 
 @app.command()
-def populate_mod_index() -> None:
+def populate_mod_index(
+    verbose: Annotated[
+        Optional[bool],
+        typer.Option(
+            "--verbose",
+            "-v",
+            help="Print more information during the process.",
+        ),
+    ] = False,
+) -> None:
     """Populate the mod index from the extracted mods directory."""
-    populate_mod_index_from_extracted_mods_dir()
+    populate_mod_index_from_extracted_mods_dir(verbose=verbose)
 
 
 @app.command()
