@@ -225,11 +225,6 @@ class ExtractionType(Enum):
                 "<ExtractionType.TYPE_E: Multiple mod folders; tp2 file/s "
                 "next to them.>"
             )
-        if self == ExtractionType.TYPE_F:
-            return (
-                "<ExtractionType.TYPE_F: One mod dir, .tp2+.command/.exe files"
-                " next to it.>"
-            )
         return self.name
 
     def __repr__(self):
@@ -240,7 +235,6 @@ class ExtractionType(Enum):
     TYPE_C = 3  # One mod folder, no .tp2 file inside; tp2 file/s next to it
     TYPE_D = 4  # Multiple mod folders, each containing a .tp2 file
     TYPE_E = 5  # Multiple mod folders; tp2 file/s next to them
-    TYPE_F = 6  # One mod dir, .tp2+.command/.exe files next to it
 
 
 @dataclass
@@ -544,26 +538,26 @@ def extract_archive_to_extracted_mods_dir(
         for f in archive_file_and_dir_names
         if os.path.isdir(os.path.join(unarchived_dpath, f))
     ]
-    mod_structure_type = None
+    mod_structure_type: Optional[ExtractionType] = None
     primary_mod_temp_dpath = ""
     primary_mod_dpath = ""
     tp2_temp_fpath = ""
     tp2_fpath = ""
-    additional_mod_temp_dpaths = []
-    additional_mod_dpaths = []
-    additional_tp2_temp_fpaths = []
-    additional_tp2_fpaths = []
-    additional_temp_fpaths = []
-    additional_fpaths = []
-    aliases = []
+    additional_mod_temp_dpaths: List[str] = []
+    additional_mod_dpaths: List[str] = []
+    additional_tp2_temp_fpaths: List[str] = []
+    additional_tp2_fpaths: List[str] = []
+    additional_temp_fpaths: List[str] = []
+    additional_fpaths: List[str] = []
+    aliases: List[str] = []
 
     if len(archive_dnames) == 1:
         # we have a single folder in the archive...
         mod_dname = archive_dnames[0]
         print(f"Mod dname: {mod_dname}")
-        res = _get_alias_from_unarchived_dpath(mod_dname)
-        if res:
-            aliases.append(res)
+        ares = _get_alias_from_unarchived_dpath(mod_dname)
+        if ares:
+            aliases.append(ares)
         mod_dpath = os.path.join(unarchived_dpath, mod_dname)
         tp2_fnames = [
             f for f in os.listdir(mod_dpath) if f.lower().endswith(TP2_EXT)
@@ -589,46 +583,22 @@ def extract_archive_to_extracted_mods_dir(
                 # dir!
                 mod_dname = archive_dnames[0]
                 mod_name = _get_alias_from_setup_fpath(mod_dname)
-                if len(archive_command_fnames) > 0:
-                    # and also command files in the unarchived dir
-                    mod_structure_type = ExtractionType.TYPE_F
-                    primary_mod_temp_dpath = os.path.join(
-                        unarchived_dpath, mod_dname
-                    )
-                    primary_mod_dpath = os.path.join(
-                        extracted_mods_dir_path, mod_dname
-                    )
-                    res = process.extractOne(mod_name, archive_tp2_fnames)
-                    tp2_fname = archive_tp2_fnames[0]
-                    if res is not None:
-                        tp2_fname = res[0]
-                    tp2_temp_fpath = os.path.join(unarchived_dpath, res[0])
-                    tp2_fpath = os.path.join(extracted_mods_dir_path, res[0])
-                    additional_tp2_temp_fpaths = [
-                        os.path.join(unarchived_dpath, f)
-                        for f in archive_tp2_fnames
-                        if f != tp2_fname
-                    ]
-                    additional_tp2_fpaths = [
-                        os.path.join(extracted_mods_dir_path, f)
-                        for f in archive_tp2_fnames
-                        if f != tp2_fname
-                    ]
-                else:
-                    mod_structure_type = ExtractionType.TYPE_C
-                    primary_mod_temp_dpath = unarchived_dpath
-                    primary_mod_dpath = os.path.join(
-                        extracted_mods_dir_path, archive_fname_no_ext
-                    )
-                    res = _get_tp2_fpaths(
-                        unarchived_dpath,
-                        primary_mod_dpath,
-                        mod_name,
-                        archive_tp2_fnames,
-                    )
-                    tp2_temp_fpath, tp2_fpath = res[:2]
-                    additional_tp2_temp_fpaths = res[2]
-                    additional_tp2_fpaths = res[3]
+                mod_structure_type = ExtractionType.TYPE_C
+                primary_mod_temp_dpath = os.path.join(
+                    unarchived_dpath, mod_dname
+                )
+                primary_mod_dpath = os.path.join(
+                    extracted_mods_dir_path, mod_dname
+                )
+                res = _get_tp2_fpaths(
+                    unarchived_dpath,
+                    extracted_mods_dir_path,
+                    mod_name,
+                    archive_tp2_fnames,
+                )
+                tp2_temp_fpath, tp2_fpath = res[:2]
+                additional_tp2_temp_fpaths = res[2]
+                additional_tp2_fpaths = res[3]
             else:
                 # no .tp2 files in the unarchived dir either :(
                 raise IllformedModArchiveError(

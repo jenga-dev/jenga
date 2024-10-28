@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import sys
 import warnings
+from pathlib import Path
 from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
@@ -23,7 +24,10 @@ from .config import (
     get_game_dir,
     print_config_info_box,
 )
-from .errors import ConfigurationError
+from .errors import (
+    ConfigurationError,
+    IllformedExtractedModDirError,
+)
 from .fixes import (
     get_cmd_fixes_for_mod,
     get_prepost_fixes_for_mod,
@@ -684,7 +688,7 @@ def run_build(
             update_weidu_conf(game_install_dir, lang)
 
         target_mod_dir = None
-        mod_tp2_path = None
+        target_tp2_path = None
         # First, we check for the possibility of using the mod index
         from_mod_index = False
         if prefer_mod_index:
@@ -700,17 +704,34 @@ def run_build(
                 target_mod_dir = os.path.join(game_install_dir, mod_dir_name)
                 tp2_fpath = mod_info.tp2_fpath
                 oper_print(
-                    f"Found mod {mod_name} in the mod index.\n"
-                    f"Extracted mod directory: {mod_dir}\n"
-                    f"Mod tp2 file: {tp2_fpath}"
+                    f"Found mod {mod_name} in the mod index:\n"
+                    f"{mod_info}\n"
                 )
                 safe_copy_dir_to_game_dir(mod_dir, target_mod_dir)
                 tp2_fname = os.path.basename(tp2_fpath)
-                mod_tp2_path = os.path.join(target_mod_dir, tp2_fname)
+                # find tp2 parent dir in extracted mods dir to understand
+                # where to copy it to
+                tp2_path = Path(tp2_fpath)
+                tp2_dpath = tp2_path.parent.absolute()
+                tp2_dname = tp2_dpath.name
+                if str(tp2_dpath) == extracted_mods_dir:
+                    target_tp2_path = os.path.join(game_install_dir, tp2_fname)
+                    shutil.copy(tp2_fpath, target_tp2_path)
+                    oper_print(
+                        f"Copied tp2 file to game directory:\n"
+                        f"{target_tp2_path}")
+                elif str(tp2_dname) == mod_dir:
+                    # no need to copy tp2 file, it's already in the mod dir
+                    target_tp2_path = os.path.join(target_mod_dir, tp2_fname)
+                else:
+                    raise IllformedExtractedModDirError(
+                        "The tp2 file was found in the an expected location "
+                        "in the mod directory or the extracted mods directory."
+                    )
                 oper_print(
                     "Mod copied to game directory.\n"
                     f"Target mod directory: {target_mod_dir}\n"
-                    f"Target tp2 file path: {mod_tp2_path}"
+                    f"Target tp2 file path: {target_tp2_path}"
                 )
 
         # Find the mod zipped archive, if available and preferred
@@ -718,7 +739,7 @@ def run_build(
         if prefer_zipped_mods and not from_mod_index:
             mod_dir = None
             target_mod_dir = None
-            mod_tp2_path = None
+            target_tp2_path = None
             oper_print("Zipped mods preferred, so...")
             if not zipped_mods_dir:
                 msg = (
@@ -744,7 +765,7 @@ def run_build(
                     # in both cases we copy a single mod dir with the all
                     # possible tp2 files insides of it, so guessting the
                     # most appropriate tp2 file from it is enough
-                    mod_tp2_path = tp2_fpath_from_mod_dpath(
+                    target_tp2_path = tp2_fpath_from_mod_dpath(
                         target_mod_dir, mod_name
                     )
                 elif ex_type == ExtractionType.TYPE_C:
@@ -753,21 +774,21 @@ def run_build(
                     # separately into the game dir (and not the mod dir!)
                     tp2_to_copy = res.tp2_file_path
                     tp2_fanme = os.path.basename(tp2_to_copy)
-                    mod_tp2_path = os.path.join(game_install_dir, tp2_fanme)
-                    shutil.copy(tp2_to_copy, mod_tp2_path)
+                    target_tp2_path = os.path.join(game_install_dir, tp2_fanme)
+                    shutil.copy(tp2_to_copy, target_tp2_path)
                 elif ex_type == ExtractionType.TYPE_E:
                     # here we have more than one mod folders, but also tp2
                     # file/s directly in the unpacked archive itself, so the
                     # unpacked archive was treated as a single mode dir, and
                     # we can guess the tp2 file from it
-                    mod_tp2_path = tp2_fpath_from_mod_dpath(
+                    target_tp2_path = tp2_fpath_from_mod_dpath(
                         target_mod_dir, mod_name
                     )
                 elif ex_type == ExtractionType.TYPE_D:
                     # here we have more than one mod folder, but no tp2 files
                     # in the root of the unpacked archive, so we have to copy
                     # additional mod folders
-                    mod_tp2_path = tp2_fpath_from_mod_dpath(
+                    target_tp2_path = tp2_fpath_from_mod_dpath(
                         target_mod_dir, mod_name
                     )
                     for mod_folder in res.additional_mod_folder_paths:
@@ -799,11 +820,11 @@ def run_build(
             target_mod_dir = os.path.join(game_install_dir, mod_name)
             safe_copy_dir_to_game_dir(mod_dir, target_mod_dir)
             # Find .tp2 file inside
-            mod_tp2_path = fuzzy_find_file_or_dir(
+            target_tp2_path = fuzzy_find_file_or_dir(
                 target_mod_dir, mod_name, setup_file_search=True
             )
 
-        if target_mod_dir is None or mod_tp2_path is None:
+        if target_mod_dir is None or target_tp2_path is None:
             fail_print(
                 f"Could not find the mod directory or the .tp2 file for "
                 f"{mod_name}. Terminating the build process."
@@ -820,7 +841,7 @@ def run_build(
             for fix in pre_fixes:
                 fix.apply(
                     mod_dir=target_mod_dir,
-                    mod_tp2_path=mod_tp2_path,
+                    mod_tp2_path=target_tp2_path,
                     jenga_config=CFG,
                     run_config=run_config,
                 )
@@ -832,7 +853,7 @@ def run_build(
             run_config,
             weidu_exec_path,
             target_mod_dir,
-            mod_tp2_path,
+            target_tp2_path,
             game_install_dir,
             language_int,
             install_list,
@@ -871,7 +892,7 @@ def run_build(
             for fix in post_fixes:
                 fix.apply(
                     mod_dir=target_mod_dir,
-                    mod_tp2_path=mod_tp2_path,
+                    mod_tp2_path=target_tp2_path,
                     jenga_config=CFG,
                     run_config=run_config,
                 )
