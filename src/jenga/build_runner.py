@@ -7,9 +7,9 @@ import shutil
 import subprocess
 import sys
 import warnings
-from pathlib import Path
 from datetime import datetime
 from enum import Enum
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 # Third-party imports
@@ -704,8 +704,7 @@ def run_build(
                 target_mod_dir = os.path.join(game_install_dir, mod_dir_name)
                 tp2_fpath = mod_info.tp2_fpath
                 oper_print(
-                    f"Found mod {mod_name} in the mod index:\n"
-                    f"{mod_info}\n"
+                    f"Found mod {mod_name} in the mod index:\n" f"{mod_info}\n"
                 )
                 safe_copy_dir_to_game_dir(mod_dir, target_mod_dir)
                 tp2_fname = os.path.basename(tp2_fpath)
@@ -719,7 +718,8 @@ def run_build(
                     shutil.copy(tp2_fpath, target_tp2_path)
                     oper_print(
                         f"Copied tp2 file to game directory:\n"
-                        f"{target_tp2_path}")
+                        f"{target_tp2_path}"
+                    )
                 elif str(tp2_dname) == mod_dir:
                     # no need to copy tp2 file, it's already in the mod dir
                     target_tp2_path = os.path.join(target_mod_dir, tp2_fname)
