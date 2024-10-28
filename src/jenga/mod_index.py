@@ -5,7 +5,7 @@ import json
 import os
 import re
 from dataclasses import dataclass
-from typing import Dict, Optional, List
+from typing import Dict, List, Optional
 
 # 3rd party imports
 from rich.progress import track
@@ -22,11 +22,11 @@ from .fs_util import (
     get_tp2_names_and_paths,
 )
 from .mod_data import (
+    JENGA_HINT_FNAME,
+    JengaHintKey,
     add_alias_to_mod,
     dump_aliases_registry_to_config_dir,
     load_aliases_registry_from_config_dir,
-    JENGA_HINT_FNAME,
-    JengaHintKey,
 )
 from .printing import (
     note_print,
@@ -197,15 +197,15 @@ def mod_info_from_dpath(
         for ini_fpath in ini_fpaths:
             res = read_mod_ini_file(ini_fpath)
             data_from_ini.update(res)
-    if 'author' in data_from_ini:
-        author = data_from_ini['author']
-    full_name = data_from_ini.get('name', name)
-    description = data_from_ini.get('description', "")
-    download = data_from_ini.get('download', None)
-    label_type = data_from_ini.get('labeltype', None)
-    mod_type = data_from_ini.get('type', None)
-    before = data_from_ini.get('before', None)
-    after = data_from_ini.get('after', None)
+    if "author" in data_from_ini:
+        author = data_from_ini["author"]
+    full_name = data_from_ini.get("name", name)
+    description = data_from_ini.get("description", "")
+    download = data_from_ini.get("download")
+    label_type = data_from_ini.get("labeltype")
+    mod_type = data_from_ini.get("type")
+    before = data_from_ini.get("before")
+    after = data_from_ini.get("after")
     if version is None:
         version = ""
     if author is None:

@@ -2,8 +2,8 @@
 
 # Standard library imports
 import json
-import re
 import os
+import re
 import shutil
 import tempfile
 from dataclasses import dataclass
@@ -40,7 +40,6 @@ from .printing import (
     sccs_print,
 )
 
-
 ARCHIVE_EXT = [".zip", ".tar.gz", ".rar"]
 TP2_EXT = ".tp2"
 COMMAND_EXT = ".command"
@@ -51,9 +50,26 @@ KNOWN_EXT = ARCHIVE_EXT + [TP2_EXT] + INSTALL_EXT + METADATA_EXT
 KNOWN_PREFIXES = ["mac-", "mac_", "macos-", "macos_", "osx-", "osx_"]
 KNOWN_SUFFIXES = ["-mac", "_mac", "-macos", "_macos", "-osx", "_osx"]
 KNOWN_INFIXES = [
-    "mac", "osx", "mod", "modification", "eet", "weidu", "setup", "install",
-    "bg1", "bg1ee", "bgiee", "bg2", "bgii", "bg2ee", "bgiiee", "bgee",
-    "bgt", "tutu", "sod", "eet",
+    "mac",
+    "osx",
+    "mod",
+    "modification",
+    "eet",
+    "weidu",
+    "setup",
+    "install",
+    "bg1",
+    "bg1ee",
+    "bgiee",
+    "bg2",
+    "bgii",
+    "bg2ee",
+    "bgiiee",
+    "bgee",
+    "bgt",
+    "tutu",
+    "sod",
+    "eet",
 ]
 
 
@@ -105,9 +121,7 @@ def fuzzy_find_file_or_dir(
             ]
         elif archive_search:
             low_candidates = [
-                cand
-                for cand in low_candidates
-                if cand.endswith(ARCHIVE_EXT)
+                cand for cand in low_candidates if cand.endswith(ARCHIVE_EXT)
             ]
         result = process.extractOne(
             name.lower(), low_candidates, scorer=fuzz.ratio
@@ -122,7 +136,7 @@ def fuzzy_find_file_or_dir(
     if name.lower() in MOD_TO_ALIAS_LIST_REGISTRY:
         search_aliases = MOD_TO_ALIAS_LIST_REGISTRY[name.lower()]
     if archive_search:
-        file_types = ARCHIVE_EXT 
+        file_types = ARCHIVE_EXT
         saliases = search_aliases.copy()
         search_aliases.clear()
         for alias in saliases:
@@ -155,9 +169,7 @@ def fuzzy_find_file_or_dir(
         ]
     elif archive_search:
         results_and_scores = [
-            res
-            for res in results_and_scores
-            if res[0].endswith(ARCHIVE_EXT)
+            res for res in results_and_scores if res[0].endswith(ARCHIVE_EXT)
         ]
     print(results_and_scores)
     best_match = results_and_scores[0][0]
@@ -374,7 +386,8 @@ def _map_mod_dir_path(
 
 
 VERSION_SUFFIX_REGEX = (
-    r"([-|\s|_]?(v|V)?([0-9\.\_\-]+|master|main|alpha|beta|Beta|a|b|rc)+)$")
+    r"([-|\s|_]?(v|V)?([0-9\.\_\-]+|master|main|alpha|beta|Beta|a|b|rc)+)$"
+)
 
 
 def _peel_affixes_from_fname(fname: str) -> str:
@@ -396,7 +409,7 @@ def _peel_affixes_from_fname(fname: str) -> str:
     # 4. Remove prefixes
     for prefix in KNOWN_PREFIXES:
         if fname.lower().startswith(prefix):
-            fname = fname[len(prefix):]
+            fname = fname[len(prefix) :]
             return _peel_affixes_from_fname(fname)
     # 5. Remove suffixes
     for suffix in KNOWN_SUFFIXES:
@@ -423,7 +436,7 @@ def _get_alias_from_setup_fpath(setup_fpath: str) -> str:
 def _get_alias_from_unarchived_dpath(unarchived_dpath: str) -> Optional[str]:
     """Get a mod name alias from an unarchived directory path."""
     unarchived_dname = os.path.basename(unarchived_dpath)
-    if unarchived_dname.lower().startswith('tmp'):
+    if unarchived_dname.lower().startswith("tmp"):
         return None
     clean_unarchived_name = _peel_affixes_from_fname(unarchived_dname)
     return clean_unarchived_name
