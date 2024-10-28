@@ -42,8 +42,8 @@ from .fs_util import (
     tp2_fpath_from_mod_dpath,
 )
 from .mod_data import (
-    get_mod_name_by_alias,
     get_aliases_by_mod,
+    get_mod_name_by_alias,
 )
 from .mod_index import (
     get_mod_info,
@@ -419,7 +419,8 @@ def mod_is_installed_identically(
     if not installed_mods_info:
         fail_print(
             "Cannot check if mod is installed identically without mod install"
-            " information.")
+            " information."
+        )
         return False, False
     mod_installation = _get_mod_info_from_installed_mods_info(
         mod_name, installed_mods_info
@@ -427,7 +428,8 @@ def mod_is_installed_identically(
     if not mod_installation:
         fail_print(
             "Cannot check if mod is installed identically without mod install"
-            " information.")
+            " information."
+        )
         return False, False
     oper_print(
         f"Comparing planned {mod_name} installation with version:\n"
@@ -449,11 +451,7 @@ def mod_is_installed_identically(
     oper_print(f"name_match: {name_match}")
     oper_print(f"version_match: {version_match}")
     oper_print(f"comp_match: {comp_match}")
-    is_installed_identically = (
-        name_match
-        and version_match
-        and comp_match
-    )
+    is_installed_identically = name_match and version_match and comp_match
     return is_installed_identically, True
 
 
@@ -798,7 +796,8 @@ def run_build(
                     pass
 
         is_instld_ident, is_instld = mod_is_installed_identically(
-            mod_name, version, components, installed_mods_info)
+            mod_name, version, components, installed_mods_info
+        )
         if skip_installed_mods and is_instld_ident:
             note_print(
                 f"{mod_name} is already identically installed. wkipping..."
