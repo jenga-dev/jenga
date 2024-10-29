@@ -19,19 +19,19 @@ from .fs_basics import (
     robust_read_lines_from_text_file,
 )
 from .fs_util import (
-    get_tp2_names_and_paths,
     _get_name_mapper_func_by_archive_fname,
+    get_tp2_names_and_paths,
 )
 from .mod_data import (
     JENGA_HINT_FNAME,
     JengaHintKey,
-    reset_inmemory_alias_to_mod_registry,
-    reset_inmemory_mod_to_alias_list_registry,
     add_alias_to_mod,
     clear_alias_registries_from_config_dir,
     dump_aliases_registry_to_config_dir,
     get_mod_name_by_alias,
     load_aliases_registry_from_config_dir,
+    reset_inmemory_alias_to_mod_registry,
+    reset_inmemory_mod_to_alias_list_registry,
 )
 from .printing import (
     note_print,
@@ -305,7 +305,8 @@ def populate_mod_index_by_dpath(
                 alias_fix = lambda alias: alias
                 if archive_fname is not None:
                     name_mapper_func = _get_name_mapper_func_by_archive_fname(
-                        archive_fname)
+                        archive_fname
+                    )
                     if name_mapper_func is not None:
                         alias_fix = name_mapper_func
                         mod_info.aliases = [

@@ -31,8 +31,8 @@ from .fs_basics import (
 )
 from .mod_data import (
     JENGA_HINT_FNAME,
-    get_aliases_by_mod,
     JengaHintKey,
+    get_aliases_by_mod,
 )
 from .printing import (
     note_print,
@@ -374,19 +374,22 @@ def _get_name_mapper_func_by_archive_fname(
 
     This function returns a simple transformer build from the relevant name
     mappers, if nay are found: A function that replaces all occurences of a key
-    k (from the mappers dict) in the input string with the corresponding
-    value v.
+    k (from the mappers dict) in the input string with the corresponding value
+    v.
 
     Thus, it is not adequate to handle replacements in file and directory
     paths.
+
     """
     mappers = _get_archive_mod_dir_name_mappers(archive_fname_no_ext)
     if mappers is None:
         return None
+
     def _simple_mapper(x: str) -> str:
         for k, v in mappers.items():
             x = x.replace(k, v)
         return x
+
     return _simple_mapper
 
 
@@ -428,6 +431,7 @@ def _remove_version_suffix(
     str
         The cleaned file name if return_version is False (which is the
         default), otherwise the version string.
+
     """
     lfname = fname.lower()
     if lfname.endswith("bg1") or lfname.endswith("bg2"):
@@ -447,7 +451,7 @@ def _remove_version_suffix(
             return ""
         return fname
     if return_version:
-        return vcomp.strip('-').strip('_')
+        return vcomp.strip("-").strip("_")
     return _VERSION_SUFFIX_PAT.sub("", fname)
 
 

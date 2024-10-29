@@ -14,12 +14,12 @@ from .config import (
 )
 from .fs_basics import merge_dirs
 from .mod_data import (
-    get_mod_name_by_alias,
     CRUCIBLE,
     EET,
     EET_END,
     ITEM_REV,
     SPELL_REV,
+    get_mod_name_by_alias,
 )
 from .mod_index import get_mod_info
 
