@@ -991,7 +991,8 @@ def run_build(
                 note_print(
                     f"Shoud {fix.fix_name} be applied? Type 'y'/'yes' to"
                     " apply, 't'/'terminate' to terminate build execution, "
-                    "or any other key to skip.")
+                    "or any other key to skip."
+                )
                 user_input = input().strip().lower()
                 if user_input in ("y", "yes"):
                     fix.apply(
@@ -1003,7 +1004,8 @@ def run_build(
                     sccs_print(f"Applied {fix.fix_name}.")
                 elif user_input in ("t", "terminate"):
                     note_print(
-                        "Terminating the build process on user request.")
+                        "Terminating the build process on user request."
+                    )
                     write_ongoing_state(build_name, i - 1, new_state_file_path)
                     note_print(f"Build state saved to {new_state_file_path}")
                     sys.exit(0)
