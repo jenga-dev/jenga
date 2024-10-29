@@ -1,17 +1,17 @@
 """The Jenga build runner."""
 
 # Standard library imports
-from dataclasses import dataclass
 import json
 import os
 import shutil
 import subprocess
 import sys
 import warnings
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Any, Dict, List, Optional, Tuple
 
 # Third-party imports
 from rich.console import Console
@@ -419,11 +419,12 @@ def _get_cumulative_installed_mod_components_by_idx(
         if mod["mod"] == mod_name:
             cumulative_components.extend(mod["components"])
     return sorted(
-        _convert_components_dicts_list_to_lists_list(cumulative_components))
+        _convert_components_dicts_list_to_lists_list(cumulative_components)
+    )
 
 
 @dataclass
-class ModInstallComaprisonResult: 
+class ModInstallComaprisonResult:
     is_installed: bool
     is_installed_identically: bool
     installed_components_match_expected_status: bool
@@ -470,8 +471,9 @@ def mod_installation_comparison(
     expected_components = _get_cumulative_installed_mod_components_by_idx(
         current_build_order_index, mod_name, mod_order
     )
-    comp_to_install_list = sorted(_convert_components_dicts_list_to_lists_list(
-        components_to_install))
+    comp_to_install_list = sorted(
+        _convert_components_dicts_list_to_lists_list(components_to_install)
+    )
     mod_installation = _get_mod_info_from_installed_mods_info(
         mod_name, installed_mods_info
     )
@@ -494,8 +496,11 @@ def mod_installation_comparison(
         f"{mod_version}\n and components:\n {components_to_install}\n"
         f" against install_info:\n {mod_installation}"
     )
-    installed_comp_list = sorted(_convert_components_dicts_list_to_lists_list(
-        mod_installation["components"]))
+    installed_comp_list = sorted(
+        _convert_components_dicts_list_to_lists_list(
+            mod_installation["components"]
+        )
+    )
     installed_comp_set = set(installed_comp_list)
     expected_comp_set = set(expected_components)
     to_install_comp_set = set(comp_to_install_list)
@@ -879,12 +884,15 @@ def run_build(
                 if skip_installed_mods:
                     note_print(
                         f"{mod_name} is already identically installed. "
-                        "Skipping...")
+                        "Skipping..."
+                    )
                     copy_to_target_dir = False
                     apply_prepost_fixes = False
                     continue
-                note_print(f"{mod_name} is already installed identically,"
-                           " but skipping is disabled. so reinstalling...")
+                note_print(
+                    f"{mod_name} is already installed identically,"
+                    " but skipping is disabled. so reinstalling..."
+                )
                 uninstall = True
             else:
                 if comp_res.installed_components_match_expected_status:
@@ -914,8 +922,15 @@ def run_build(
                         "process, type 't'/'terminate'."
                     )
                     allowed_inputs = (
-                        "y", "yes", "s", "skip", "t", "terminate", "u",
-                        "uninstall")
+                        "y",
+                        "yes",
+                        "s",
+                        "skip",
+                        "t",
+                        "terminate",
+                        "u",
+                        "uninstall",
+                    )
                     user_input = "42"
                     while user_input not in allowed_inputs:
                         user_input = input().strip().lower()
@@ -933,9 +948,11 @@ def run_build(
                             continue
                         if user_input in ("t", "terminate"):
                             write_ongoing_state(
-                                build_name, i, new_state_file_path)
+                                build_name, i, new_state_file_path
+                            )
                             note_print(
-                                f"Build state saved to {new_state_file_path}")
+                                f"Build state saved to {new_state_file_path}"
+                            )
                             print_goodbye()
                             sys.exit(0)
 
@@ -943,7 +960,8 @@ def run_build(
                 if installed_mods_info is None:
                     fail_print(
                         "Cannot uninstall mod without installed mods "
-                        "information.")
+                        "information."
+                    )
                     write_ongoing_state(build_name, i - 1, new_state_file_path)
                     note_print(f"Build state saved to {new_state_file_path}")
                     sys.exit(1)
@@ -956,7 +974,8 @@ def run_build(
                 if not uninst_sccs:
                     fail_print(
                         f"Failed to uninstall {mod_name}. Terminating the "
-                        "build process.")
+                        "build process."
+                    )
                     write_ongoing_state(build_name, i - 1, new_state_file_path)
                     note_print(f"Build state saved to {new_state_file_path}")
                     sys.exit(1)
