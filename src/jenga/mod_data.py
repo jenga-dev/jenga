@@ -24,20 +24,9 @@ SPELL_REV = "spell_rev"
 
 
 # Mod Alias Registry
-ALIAS_TO_MOD_REGISTRY: Dict[str, str] = {
+_ALIAS_TO_MOD_REGISTRY_BASE: Dict[str, str] = {
     # EET ALIASES
     EET.lower(): EET.lower(),
-    # LEUI_BG1EE ALIASES
-    LEUI_BG1EE.lower(): LEUI_BG1EE.lower(),
-    # "lefreuts-enhanced-ui-bg1ee-skin".lower(): LEUI_BG1EE.lower(),
-    # LUCY ALIASES
-    LUCY.lower(): LUCY.lower(),
-    # "lucy-the-wyvern".lower(): LUCY.lower(),
-    # DC ALIASES
-    DC.lower(): DC.lower(),
-    # "DungeonCrawl".lower(): DC.lower(),
-    # CRUCIBLE ALIASES
-    CRUCIBLE.lower(): CRUCIBLE.lower(),
     # ITEM_REV ALIASES
     ITEM_REV.lower(): ITEM_REV.lower(),
     "itemrev": ITEM_REV.lower(),
@@ -52,6 +41,14 @@ ALIAS_TO_MOD_REGISTRY: Dict[str, str] = {
     EET_END.lower(): EET_END.lower(),
     "EETEND".lower(): EET_END.lower(),
 }
+
+ALIAS_TO_MOD_REGISTRY: Dict[str, str] = _ALIAS_TO_MOD_REGISTRY_BASE.copy()
+
+
+def reset_inmemory_alias_to_mod_registry() -> None:
+    """Reset the in-memory alias registry."""
+    global ALIAS_TO_MOD_REGISTRY
+    ALIAS_TO_MOD_REGISTRY = _ALIAS_TO_MOD_REGISTRY_BASE.copy()
 
 
 def get_mod_name_by_alias(alias: str) -> Optional[str]:
@@ -78,6 +75,17 @@ for alias, mod in ALIAS_TO_MOD_REGISTRY.items():
         MOD_TO_ALIAS_LIST_REGISTRY[mod] = [alias]
     else:
         MOD_TO_ALIAS_LIST_REGISTRY[mod].append(alias)
+
+
+def reset_inmemory_mod_to_alias_list_registry() -> None:
+    """Reset the in-memory mod to alias registry."""
+    global MOD_TO_ALIAS_LIST_REGISTRY
+    MOD_TO_ALIAS_LIST_REGISTRY = {}
+    for alias, mod in ALIAS_TO_MOD_REGISTRY.items():
+        if mod not in MOD_TO_ALIAS_LIST_REGISTRY:
+            MOD_TO_ALIAS_LIST_REGISTRY[mod] = [alias]
+        else:
+            MOD_TO_ALIAS_LIST_REGISTRY[mod].append(alias)
 
 
 def get_aliases_by_mod(mod: str) -> List[str]:
@@ -250,3 +258,4 @@ class JengaHintKey:
     EXTRACTION_TYPE = "extraction_type"
     MAIN_TP2_FPATH = "main_tp2_fpath"
     ALIASES = "aliases"
+    ARCHIVE_INFERRED_VERSION = "archive_inferred_version"

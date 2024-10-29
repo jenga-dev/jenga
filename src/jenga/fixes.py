@@ -14,7 +14,7 @@ from .config import (
 )
 from .fs_basics import merge_dirs
 from .mod_data import (
-    ALIAS_TO_MOD_REGISTRY,
+    get_mod_name_by_alias,
     CRUCIBLE,
     EET,
     EET_END,
@@ -446,9 +446,9 @@ def get_prepost_fixes_for_mod(
         A list of any fixes to apply before/after the specified mod.
 
     """
-    uniform_name = ALIAS_TO_MOD_REGISTRY.get(
-        mod_name.lower(), mod_name.lower()
-    )
+    uniform_name = get_mod_name_by_alias(mod_name)
+    if uniform_name is None:
+        uniform_name = mod_name.lower()
     registry = PRE_FIXES_REGISTRY if prefix else POST_FIXES_REGISTRY
     return registry.get(uniform_name, [])
 
@@ -467,7 +467,7 @@ def get_cmd_fixes_for_mod(mod_name: str) -> Sequence[JengaCmdFix]:
         A list of any command fixes to apply for the specified mod.
 
     """
-    uniform_name = ALIAS_TO_MOD_REGISTRY.get(
-        mod_name.lower(), mod_name.lower()
-    )
+    uniform_name = get_mod_name_by_alias(mod_name)
+    if uniform_name is None:
+        uniform_name = mod_name.lower()
     return CMD_FIXES_REGISTRY.get(uniform_name, [])

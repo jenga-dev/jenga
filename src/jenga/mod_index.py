@@ -20,10 +20,13 @@ from .fs_basics import (
 )
 from .fs_util import (
     get_tp2_names_and_paths,
+    _get_name_mapper_func_by_archive_fname,
 )
 from .mod_data import (
     JENGA_HINT_FNAME,
     JengaHintKey,
+    reset_inmemory_alias_to_mod_registry,
+    reset_inmemory_mod_to_alias_list_registry,
     add_alias_to_mod,
     clear_alias_registries_from_config_dir,
     dump_aliases_registry_to_config_dir,
@@ -54,6 +57,7 @@ class ModInfo:
     mod_type: Optional[str] = None
     before: Optional[str] = None
     after: Optional[str] = None
+    archive_fname: Optional[str] = None
 
 
 MOD_INDEX: Dict[str, ModInfo] = {}
@@ -167,11 +171,17 @@ def mod_info_from_dpath(
     #              (including subfolders)
     name = None
     tp2_fpath = None
+    archive_fname = None
+    archive_inferred_version = None
     # better to get the name and tp2_fpath from the hint file
     if JengaHintKey.MOD_NAME in hint:
         name = hint[JengaHintKey.MOD_NAME]
     if JengaHintKey.MAIN_TP2_FPATH in hint:
         tp2_fpath = hint[JengaHintKey.MAIN_TP2_FPATH]
+    if JengaHintKey.ARCHIVE_FNAME in hint:
+        archive_fname = hint[JengaHintKey.ARCHIVE_FNAME]
+    if JengaHintKey.ARCHIVE_INFERRED_VERSION in hint:
+        archive_inferred_version = hint[JengaHintKey.ARCHIVE_INFERRED_VERSION]
     # if one or both are missing from the hint file, infer them from the folder
     if name is None or tp2_fpath is None:
         tp2_fnames_to_fpaths = get_tp2_names_and_paths(extracted_mod_dpath)
@@ -212,7 +222,10 @@ def mod_info_from_dpath(
     before = data_from_ini.get("before")
     after = data_from_ini.get("after")
     if version is None:
-        version = ""
+        if archive_inferred_version is not None:
+            version = archive_inferred_version
+        else:
+            version = ""
     if author is None:
         author = ""
     # return a ModInfo object
@@ -230,6 +243,7 @@ def mod_info_from_dpath(
         mod_type=mod_type,
         before=before,
         after=after,
+        archive_fname=archive_fname,
     )
 
 
@@ -261,6 +275,8 @@ def populate_mod_index_by_dpath(
     """Populate mod index from extracted mods."""
     global MOD_INDEX
     MOD_INDEX = {}
+    reset_inmemory_alias_to_mod_registry()
+    reset_inmemory_mod_to_alias_list_registry()
     # iterate over all folders in extracted_mods_dpath,
     # and for each folder, determine mod attributes like so:
     oper_print("Populating mod index from the extracted mods folder...")
@@ -282,16 +298,31 @@ def populate_mod_index_by_dpath(
             if mod_info is not None:
                 mod_key = mod_info.name.lower()
                 MOD_INDEX[mod_key] = mod_info
+                # handle the unqiue case of name mappers, for mods like
+                # ir_revised and sr_revised, which confuse with aliases they
+                # shouldn't have, like "item_rev" and "spell_rev", respectively
+                archive_fname = mod_info.archive_fname
+                alias_fix = lambda alias: alias
+                if archive_fname is not None:
+                    name_mapper_func = _get_name_mapper_func_by_archive_fname(
+                        archive_fname)
+                    if name_mapper_func is not None:
+                        alias_fix = name_mapper_func
+                        mod_info.aliases = [
+                            name_mapper_func(alias)
+                            for alias in mod_info.aliases
+                        ]
                 full_name = mod_info.full_name
                 if full_name is not None and len(full_name) > 0:
-                    add_alias_to_mod(full_name, mod_info.name)
-                    mod_info.aliases.append(full_name)
+                    alias = alias_fix(full_name)
+                    add_alias_to_mod(alias, mod_info.name)
+                    mod_info.aliases.append(alias)
                 tp2_fpath = mod_info.tp2_fpath
                 if tp2_fpath is not None:
                     tp2_fname = os.path.basename(tp2_fpath)
-                    tp2_fname_no_ext = os.path.splitext(tp2_fname)[0]
-                    add_alias_to_mod(tp2_fname_no_ext, mod_info.name)
-                    mod_info.aliases.append(tp2_fname_no_ext)
+                    alias = alias_fix(os.path.splitext(tp2_fname)[0])
+                    add_alias_to_mod(alias, mod_info.name)
+                    mod_info.aliases.append(alias)
                 for alias in mod_info.aliases:
                     add_alias_to_mod(alias, mod_info.name)
                 mod_info.aliases = list(set(mod_info.aliases))

@@ -31,7 +31,7 @@ from .fs_basics import (
 )
 from .mod_data import (
     JENGA_HINT_FNAME,
-    MOD_TO_ALIAS_LIST_REGISTRY,
+    get_aliases_by_mod,
     JengaHintKey,
 )
 from .printing import (
@@ -132,9 +132,9 @@ def fuzzy_find_file_or_dir(
             if best_score > 30:
                 return os.path.join(directory, best_match)
 
-    search_aliases = [name]
-    if name.lower() in MOD_TO_ALIAS_LIST_REGISTRY:
-        search_aliases = MOD_TO_ALIAS_LIST_REGISTRY[name.lower()]
+    search_aliases = get_aliases_by_mod(name)
+    if len(search_aliases) == 0:
+        search_aliases = [name]
     if archive_search:
         file_types = ARCHIVE_EXT
         saliases = search_aliases.copy()
@@ -367,6 +367,29 @@ def _get_archive_mod_dir_name_mappers(
             return _ARCHIVE_MOD_DIR_MAPPERS[key]
 
 
+def _get_name_mapper_func_by_archive_fname(
+    archive_fname_no_ext: str,
+) -> Optional[Callable[[str], str]]:
+    """Get the name mapper function by archive file name.
+
+    This function returns a simple transformer build from the relevant name
+    mappers, if nay are found: A function that replaces all occurences of a key
+    k (from the mappers dict) in the input string with the corresponding
+    value v.
+
+    Thus, it is not adequate to handle replacements in file and directory
+    paths.
+    """
+    mappers = _get_archive_mod_dir_name_mappers(archive_fname_no_ext)
+    if mappers is None:
+        return None
+    def _simple_mapper(x: str) -> str:
+        for k, v in mappers.items():
+            x = x.replace(k, v)
+        return x
+    return _simple_mapper
+
+
 def _map_mod_dir_path(
     mod_dpath: str,
     dname_mappers: Dict[str, str],
@@ -386,19 +409,45 @@ _VERSION_SUFFIX_PAT = re.compile(_VERSION_SUFFIX_REGEX)
 _BAD_CHARSET = set(["a", "b", "r", "c"])
 
 
-def _remove_version_suffix(fname: str) -> str:
-    """Remove the version suffix from a file name."""
+def _remove_version_suffix(
+    fname: str,
+    return_version: Optional[bool] = False,
+) -> str:
+    """Remove the version suffix from a file name.
+
+    Parameters
+    ----------
+    fname : str
+        The file name.
+    return_version : bool, optional
+        Whether to return the version suffix instead of the cleaned file name.
+        Default is False.
+
+    Returns
+    -------
+    str
+        The cleaned file name if return_version is False (which is the
+        default), otherwise the version string.
+    """
     lfname = fname.lower()
     if lfname.endswith("bg1") or lfname.endswith("bg2"):
+        if return_version:
+            return ""
         return fname
     match = _VERSION_SUFFIX_PAT.search(fname)
     if match is None:
+        if return_version:
+            return ""
         return fname
     vcomp = match.group(0).lower()
     charset = set([c for c in vcomp])
     # if charset is a subset of _BAD_CHARSET, then this isi a bad match
     if charset.issubset(_BAD_CHARSET):
+        if return_version:
+            return ""
         return fname
+    if return_version:
+        return vcomp.strip('-').strip('_')
     return _VERSION_SUFFIX_PAT.sub("", fname)
 
 
@@ -436,6 +485,14 @@ def _peel_affixes_from_fname(fname: str) -> str:
         if res != fname:
             return _peel_affixes_from_fname(res)
     return fname
+
+
+def _get_version_from_archive_fname(fname: str) -> Optional[str]:
+    for ext in KNOWN_EXT:
+        if fname.lower().endswith(ext):
+            fname = fname[: -len(ext)]
+            return _get_version_from_archive_fname(fname)
+    return _remove_version_suffix(fname, return_version=True)
 
 
 def _get_alias_from_setup_fpath(setup_fpath: str) -> str:
@@ -557,7 +614,7 @@ def extract_archive_to_extracted_mods_dir(
     if len(archive_dnames) == 1:
         # we have a single folder in the archive...
         mod_dname = archive_dnames[0]
-        print(f"Mod dname: {mod_dname}")
+        # oper_print(f"Mod dname: {mod_dname}")
         ares = _get_alias_from_unarchived_dpath(mod_dname)
         if ares:
             aliases.append(ares)
@@ -730,6 +787,8 @@ def extract_archive_to_extracted_mods_dir(
                 dpath, mod_dname_mappers
             )
         for k, v in mod_dname_mappers.items():
+            if k in mod_name:
+                mod_name = mod_name.replace(k, v)
             if k in tp2_fpath:
                 tp2_fpath = tp2_fpath.replace(k, v, 1)
             for i, fpath in enumerate(additional_tp2_fpaths):
@@ -798,9 +857,15 @@ def extract_archive_to_extracted_mods_dir(
         aliases.append(res)
     if len(archive_command_fnames) == 1:
         aliases.append(_get_alias_from_setup_fpath(archive_command_fnames[0]))
+    if mod_dname_mappers is not None:
+        for k, v in mod_dname_mappers.items():
+            for i, a in enumerate(aliases):
+                if k in a:
+                    aliases[i] = a.replace(k, v)
     aliases = list(set(aliases))
 
     mod_name = _get_alias_from_setup_fpath(mod_name)
+    archive_inferred_version = _get_version_from_archive_fname(archive_fname)
 
     # Step 7: Write a Jenga hint file into the mod folder
     hint_fpath = os.path.join(primary_mod_dpath, JENGA_HINT_FNAME)
@@ -810,8 +875,10 @@ def extract_archive_to_extracted_mods_dir(
         JengaHintKey.EXTRACTION_TYPE: mod_structure_type.name,
         JengaHintKey.MAIN_TP2_FPATH: tp2_fpath,
         JengaHintKey.ALIASES: aliases,
+        JengaHintKey.ARCHIVE_INFERRED_VERSION: archive_inferred_version,
     }
-    json.dump(hint_data, open(hint_fpath, "w"), indent=4)
+    with open(hint_fpath, "w", encoding="utf-8") as hint_file:
+        json.dump(hint_data, hint_file, indent=4)
 
     # Step 8: Clean up temporary directory
     shutil.rmtree(temp_dir)
