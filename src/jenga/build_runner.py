@@ -1,6 +1,7 @@
 """The Jenga build runner."""
 
 # Standard library imports
+from dataclasses import dataclass
 import json
 import os
 import shutil
@@ -10,7 +11,7 @@ import warnings
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 
 # Third-party imports
 from rich.console import Console
@@ -390,12 +391,56 @@ def _convert_components_dicts_list_to_lists_list(
     return [(c["number"], c["description"]) for c in components_dict]
 
 
-def mod_is_installed_identically(
+def _get_cumulative_installed_mod_components_by_idx(
+    current_build_order_index: int,
+    mod_name: str,
+    mod_order: List[Dict[str, Any]],
+) -> List[Tuple[str, str]]:
+    """Get the cumulative installed components up to the given index.
+
+    Parameters
+    ----------
+    index : int
+        The index of the mod in the mod order list.
+    mod_name : str
+        The name of the mod.
+    mod_order : List[Dict[str, Any]]
+        The list of mods in the order they are to be installed.
+
+    Returns
+    -------
+    List[Tuple[str, str]]
+        The cumulative list of installed components.
+
+    """
+    cumulative_components = []
+    for i in range(current_build_order_index):
+        mod = mod_order[i]
+        if mod["mod"] == mod_name:
+            cumulative_components.extend(mod["components"])
+    return sorted(
+        _convert_components_dicts_list_to_lists_list(cumulative_components))
+
+
+@dataclass
+class ModInstallComaprisonResult: 
+    is_installed: bool
+    is_installed_identically: bool
+    installed_components_match_expected_status: bool
+    more_components_installed_than_expected: bool
+    more_components_installed_than_planned: bool
+    installed_components: List[Tuple[str, str]]
+    expected_components: List[Tuple[str, str]]
+
+
+def mod_installation_comparison(
     mod_name: str,
     mod_version: str,
-    desired_components: List[Dict[str, str]],
-    installed_mods_info: Optional[dict] = None,
-) -> Tuple[bool, bool]:
+    components_to_install: List[Dict[str, str]],
+    mod_order: List[Dict[str, Any]],
+    current_build_order_index: int,
+    installed_mods_info: dict,
+) -> ModInstallComaprisonResult:
     """Check if the mod is installed identically.
 
     Parameters
@@ -404,55 +449,79 @@ def mod_is_installed_identically(
         The name of the mod.
     mod_version : str
         The version of the mod.
-    desired_components : list
+    components_to_install : list
         The list of installed components.
-    installed_mods_info : dict, optional
-        The information about the mod installation.
-        If not provided, returns False.
+    mod_order : list
+        The list of mods in the order they are to be installed.
+    current_build_order_index : int
+        The index of the mod in the mod order list.
+    installed_mods_info : dict
+        The information about current installed mods.
 
     Returns
     -------
-    bool
-        Whether the mod is installed identically.
+    ModInstallComaprisonResult
+        Various relevant information on the current installation, if any,
+        of the given mod when compared with the desired components to install
+        and the expected status of installed components at the current point
+        in the build process.
 
     """
-    if not installed_mods_info:
-        fail_print(
-            "Cannot check if mod is installed identically without mod install"
-            " information."
-        )
-        return False, False
+    expected_components = _get_cumulative_installed_mod_components_by_idx(
+        current_build_order_index, mod_name, mod_order
+    )
+    comp_to_install_list = sorted(_convert_components_dicts_list_to_lists_list(
+        components_to_install))
     mod_installation = _get_mod_info_from_installed_mods_info(
         mod_name, installed_mods_info
     )
     if not mod_installation:
-        fail_print(
-            "Cannot check if mod is installed identically without mod install"
-            " information."
+        if len(expected_components) == 0:
+            expectations_match = True
+        else:
+            expectations_match = False
+        return ModInstallComaprisonResult(
+            is_installed=False,
+            is_installed_identically=False,
+            installed_components_match_expected_status=expectations_match,
+            more_components_installed_than_expected=False,
+            more_components_installed_than_planned=False,
+            installed_components=[],
+            expected_components=comp_to_install_list,
         )
-        return False, False
     oper_print(
         f"Comparing planned {mod_name} installation with version:\n"
-        f"{mod_version}\n and components:\n {desired_components}\n"
+        f"{mod_version}\n and components:\n {components_to_install}\n"
         f" against install_info:\n {mod_installation}"
     )
-    installed_comp_list = _convert_components_dicts_list_to_lists_list(
-        mod_installation["components"]
-    )
-    desired_comp_list = _convert_components_dicts_list_to_lists_list(
-        desired_components
-    )
+    installed_comp_list = sorted(_convert_components_dicts_list_to_lists_list(
+        mod_installation["components"]))
+    installed_comp_set = set(installed_comp_list)
+    expected_comp_set = set(expected_components)
+    to_install_comp_set = set(comp_to_install_list)
+    expectations_match = installed_comp_set == expected_comp_set
+    more_installed_than_expected = installed_comp_set > expected_comp_set
     version_match = mod_installation["version"] == mod_version
     if mod_installation["version"] == UNVERSIONED_MOD_MARKER:
         version_match = True
     # name_match = mod_installation["mod"] == mod_name.lower()
-    comp_match = set(installed_comp_list) == set(desired_comp_list)
+    comp_match = installed_comp_set == to_install_comp_set
+    more_installed_than_planned = installed_comp_set > to_install_comp_set
     # print(">>>>>> installed identically debug <<<<<<<<")
     # oper_print(f"name_match: {name_match}")
     oper_print(f"version_match: {version_match}")
     oper_print(f"comp_match: {comp_match}")
+    oper_print(f"expectations_match: {expectations_match}")
     is_installed_identically = version_match and comp_match
-    return is_installed_identically, True
+    return ModInstallComaprisonResult(
+        is_installed=True,
+        is_installed_identically=is_installed_identically,
+        installed_components_match_expected_status=expectations_match,
+        more_components_installed_than_expected=more_installed_than_expected,
+        more_components_installed_than_planned=more_installed_than_planned,
+        installed_components=installed_comp_list,
+        expected_components=comp_to_install_list,
+    )
 
 
 def _resolve_game_dir(
@@ -685,12 +754,10 @@ def run_build(
     game = config.get("game")
     game_install_dir = _resolve_game_dir(game_install_dir, game)
     run_config["game_install_dir"] = game_install_dir
-    installed_mods_info = None
     if skip_installed_mods is None:
         skip_installed_mods = config.get("skip_installed_mods")
     run_config["skip_installed_mods"] = skip_installed_mods
-    if skip_installed_mods:
-        installed_mods_info = get_mod_info_from_weidu_log(game_install_dir)
+    installed_mods_info = get_mod_info_from_weidu_log(game_install_dir)
     build_name = config.get("build_name")
     if build_name is None:
         raise ValueError(
@@ -795,42 +862,107 @@ def run_build(
                 elif user_input in ("f", "force"):
                     pass
 
-        is_instld_ident, is_instld = mod_is_installed_identically(
-            mod_name, version, components, installed_mods_info
+        uninstall = False
+        copy_to_target_dir = True
+        apply_prepost_fixes = True
+        comp_res = mod_installation_comparison(
+            mod_name, version, components, mods, i, installed_mods_info
         )
-        if skip_installed_mods and is_instld_ident:
-            note_print(
-                f"{mod_name} is already identically installed. wkipping..."
+        if comp_res.is_installed:
+            installed_comp_str = ",".join(
+                [f"{c[0]}" for c in comp_res.installed_components]
             )
-            continue
-        if is_instld and not is_instld_ident:
-            note_print(
-                f"{mod_name} is already installed, but not identically. "
-                "Uninstalling..."
+            expected_comp_str = ",".join(
+                [f"{c[0]}" for c in comp_res.expected_components]
             )
-            if installed_mods_info is None:
-                fail_print(
-                    "Cannot uninstall mod without installed mods information."
+            if comp_res.is_installed_identically:
+                if skip_installed_mods:
+                    note_print(
+                        f"{mod_name} is already identically installed. "
+                        "Skipping...")
+                    copy_to_target_dir = False
+                    apply_prepost_fixes = False
+                    continue
+                note_print(f"{mod_name} is already installed identically,"
+                           " but skipping is disabled. so reinstalling...")
+                uninstall = True
+            else:
+                if comp_res.installed_components_match_expected_status:
+                    note_print(
+                        f"{mod_name} already installed, but not identically."
+                        "However, the installed components ("
+                        f"{installed_comp_str}) match the expected "
+                        "components at this point in the build process. "
+                        "Continuing with the installation of the current set "
+                        "of components to add..."
+                    )
+                    copy_to_target_dir = False
+                    apply_prepost_fixes = False
+                else:
+                    copy_to_target_dir = False
+                    apply_prepost_fixes = False
+                    note_print(
+                        f"{mod_name} already installed, but not identically. "
+                        "Also, the installed components ("
+                        f"{installed_comp_str}) do not match the expected "
+                        f"components ({expected_comp_str}) at this point in "
+                        "the build process. To continue with the installation "
+                        " of the current set of components, type 'y'/'yes'. "
+                        "To uninstall the mod and reinstall it with the "
+                        "current set of components, type 'u'/'uninstall'. "
+                        "To skip, type 's'/'skip'. To terminate the build "
+                        "process, type 't'/'terminate'."
+                    )
+                    allowed_inputs = (
+                        "y", "yes", "s", "skip", "t", "terminate", "u",
+                        "uninstall")
+                    user_input = "42"
+                    while user_input not in allowed_inputs:
+                        user_input = input().strip().lower()
+                        if user_input in ("u", "uninstall"):
+                            note_print(
+                                f"Uninstalling {mod_name} and reinstalling "
+                                "with the current set of components..."
+                            )
+                            uninstall = True
+                            copy_to_target_dir = True
+                            apply_prepost_fixes = True
+                            break
+                        if user_input in ("s", "skip"):
+                            note_print(f"Skipping {mod_name}...")
+                            continue
+                        if user_input in ("t", "terminate"):
+                            write_ongoing_state(
+                                build_name, i, new_state_file_path)
+                            note_print(
+                                f"Build state saved to {new_state_file_path}")
+                            print_goodbye()
+                            sys.exit(0)
+
+            if uninstall:
+                if installed_mods_info is None:
+                    fail_print(
+                        "Cannot uninstall mod without installed mods "
+                        "information.")
+                    write_ongoing_state(build_name, i - 1, new_state_file_path)
+                    note_print(f"Build state saved to {new_state_file_path}")
+                    sys.exit(1)
+                uninst_sccs = uninstall_mod(
+                    mod_name,
+                    weidu_exec_path,
+                    game_install_dir,
+                    installed_mods_info,
                 )
-                write_ongoing_state(build_name, i - 1, new_state_file_path)
-                note_print(f"Build state saved to {new_state_file_path}")
-                sys.exit(1)
-            uninst_sccs = uninstall_mod(
-                mod_name,
-                weidu_exec_path,
-                game_install_dir,
-                installed_mods_info,
-            )
-            if not uninst_sccs:
-                fail_print(
-                    f"Failed to uninstall {mod_name}. Terminating the build "
-                    "process."
-                )
-                write_ongoing_state(build_name, i - 1, new_state_file_path)
-                note_print(f"Build state saved to {new_state_file_path}")
-                sys.exit(1)
+                if not uninst_sccs:
+                    fail_print(
+                        f"Failed to uninstall {mod_name}. Terminating the "
+                        "build process.")
+                    write_ongoing_state(build_name, i - 1, new_state_file_path)
+                    note_print(f"Build state saved to {new_state_file_path}")
+                    sys.exit(1)
 
         log_file = f'setup-{mod_name.lower().replace(" ", "_")}.debug'
+        log_file = os.path.join(game_install_dir, log_file)
 
         # Update Weidu.conf with the language if necessary
         if force_lang_in_weidu_conf:
@@ -855,20 +987,21 @@ def run_build(
                 oper_print(
                     f"Found mod {mod_name} in the mod index:\n" f"{mod_info}\n"
                 )
-                safe_copy_dir_to_game_dir(mod_dir, target_mod_dir)
+                if copy_to_target_dir:
+                    safe_copy_dir_to_game_dir(mod_dir, target_mod_dir)
                 tp2_fname = os.path.basename(tp2_fpath)
                 # find tp2 parent dir in extracted mods dir to understand
                 # where to copy it to
                 tp2_path = Path(tp2_fpath)
                 tp2_dpath = tp2_path.parent.absolute()
-                tp2_dname = tp2_dpath.name
                 if str(tp2_dpath) == extracted_mods_dir:
                     target_tp2_path = os.path.join(game_install_dir, tp2_fname)
-                    shutil.copy(tp2_fpath, target_tp2_path)
-                    oper_print(
-                        f"Copied tp2 file to game directory:\n"
-                        f"{target_tp2_path}"
-                    )
+                    if copy_to_target_dir:
+                        shutil.copy(tp2_fpath, target_tp2_path)
+                        oper_print(
+                            f"Copied tp2 file to game directory:\n"
+                            f"{target_tp2_path}"
+                        )
                 elif str(tp2_dpath) == mod_dir:
                     # no need to copy tp2 file, it's already in the mod dir
                     target_tp2_path = os.path.join(target_mod_dir, tp2_fname)
@@ -877,11 +1010,12 @@ def run_build(
                         "The tp2 file was found in the an expected location "
                         "in the mod directory or the extracted mods directory."
                     )
-                oper_print(
-                    "Mod copied to game directory.\n"
-                    f"Target mod directory: {target_mod_dir}\n"
-                    f"Target tp2 file path: {target_tp2_path}"
-                )
+                if copy_to_target_dir:
+                    oper_print(
+                        "Mod copied to game directory.\n"
+                        f"Target mod directory: {target_mod_dir}\n"
+                        f"Target tp2 file path: {target_tp2_path}"
+                    )
 
         # Find the mod zipped archive, if available and preferred
         from_archive = False
@@ -908,7 +1042,8 @@ def run_build(
                 mod_dir = res.mod_folder_path
                 mod_dir_name = dir_name_from_dir_path(mod_dir)
                 target_mod_dir = os.path.join(game_install_dir, mod_dir_name)
-                safe_copy_dir_to_game_dir(mod_dir, target_mod_dir)
+                if copy_to_target_dir:
+                    safe_copy_dir_to_game_dir(mod_dir, target_mod_dir)
                 ex_type = res.extraction_type
                 if ex_type in [ExtractionType.TYPE_A, ExtractionType.TYPE_B]:
                     # in both cases we copy a single mod dir with the all
@@ -924,7 +1059,8 @@ def run_build(
                     tp2_to_copy = res.tp2_file_path
                     tp2_fanme = os.path.basename(tp2_to_copy)
                     target_tp2_path = os.path.join(game_install_dir, tp2_fanme)
-                    shutil.copy(tp2_to_copy, target_tp2_path)
+                    if copy_to_target_dir:
+                        shutil.copy(tp2_to_copy, target_tp2_path)
                 elif ex_type == ExtractionType.TYPE_E:
                     # here we have more than one mod folders, but also tp2
                     # file/s directly in the unpacked archive itself, so the
@@ -945,16 +1081,18 @@ def run_build(
                         target_mod_folder = os.path.join(
                             game_install_dir, mod_folder_name
                         )
-                        safe_copy_dir_to_game_dir(
-                            mod_folder, target_mod_folder
-                        )
+                        if copy_to_target_dir:
+                            safe_copy_dir_to_game_dir(
+                                mod_folder, target_mod_folder
+                            )
                         additional_fpaths = res.additional_file_paths
                         for fpath in additional_fpaths:
                             f_name = os.path.basename(fpath)
                             target_fpath = os.path.join(
                                 game_install_dir, f_name
                             )
-                            shutil.copy(fpath, target_fpath)
+                            if copy_to_target_dir:
+                                shutil.copy(fpath, target_fpath)
 
         if not from_mod_index and not from_archive:
             oper_print("No mod index entry found, and no zipped mod found.")
@@ -967,7 +1105,8 @@ def run_build(
             )
             # Copy the mod directory to the game directory
             target_mod_dir = os.path.join(game_install_dir, mod_name)
-            safe_copy_dir_to_game_dir(mod_dir, target_mod_dir)
+            if copy_to_target_dir:
+                safe_copy_dir_to_game_dir(mod_dir, target_mod_dir)
             # Find .tp2 file inside
             target_tp2_path = fuzzy_find_file_or_dir(
                 target_mod_dir, mod_name, setup_file_search=True
@@ -985,7 +1124,7 @@ def run_build(
         # Apply any pre-fixes for the mod
         oper_print(f"Looking for pre-fixes for {mod_name}...")
         pre_fixes = get_prepost_fixes_for_mod(mod_name, prefix=True)
-        if pre_fixes:
+        if pre_fixes and apply_prepost_fixes:
             oper_print(f"Applying pre-fixes for {mod_name}...")
             for fix in pre_fixes:
                 note_print(
@@ -1050,7 +1189,7 @@ def run_build(
         # Apply any post-fixes for the mod
         oper_print(f"Looking for post-fixes for {mod_name}...")
         post_fixes = get_prepost_fixes_for_mod(mod_name, prefix=False)
-        if post_fixes:
+        if post_fixes and apply_prepost_fixes:
             oper_print(f"Applying post-fixes for {mod_name}...")
             for fix in post_fixes:
                 fix.apply(
