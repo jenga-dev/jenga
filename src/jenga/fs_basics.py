@@ -161,7 +161,10 @@ def merge_dirs(src: str, dest: str) -> None:
             dest_file = os.path.join(dest, os.path.relpath(src_file, src))
             if os.path.exists(dest_file):
                 os.remove(dest_file)
-            shutil.copy2(src_file, dest_file)
+            dest_dir = os.path.dirname(dest_file)
+            # make sure the destination directory exists
+            os.makedirs(dest_dir, exist_ok=True)
+            shutil.copy(src_file, dest_dir)
 
 
 def fuzzy_find(

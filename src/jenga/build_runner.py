@@ -988,13 +988,25 @@ def run_build(
         if pre_fixes:
             oper_print(f"Applying pre-fixes for {mod_name}...")
             for fix in pre_fixes:
-                fix.apply(
-                    mod_dir=target_mod_dir,
-                    mod_tp2_path=target_tp2_path,
-                    jenga_config=CFG,
-                    run_config=run_config,
-                )
-                sccs_print(f"Applied {fix.fix_name}.")
+                note_print(
+                    f"Shoud {fix.fix_name} be applied? Type 'y'/'yes' to"
+                    " apply, 't'/'terminate' to terminate build execution, "
+                    "or any other key to skip.")
+                user_input = input().strip().lower()
+                if user_input in ("y", "yes"):
+                    fix.apply(
+                        mod_dir=target_mod_dir,
+                        mod_tp2_path=target_tp2_path,
+                        jenga_config=CFG,
+                        run_config=run_config,
+                    )
+                    sccs_print(f"Applied {fix.fix_name}.")
+                elif user_input in ("t", "terminate"):
+                    note_print(
+                        "Terminating the build process on user request.")
+                    write_ongoing_state(build_name, i - 1, new_state_file_path)
+                    note_print(f"Build state saved to {new_state_file_path}")
+                    sys.exit(0)
 
         oper_print(f"Installing {mod_name}...")
         status = execute_mod_installation(
