@@ -700,9 +700,11 @@ def extract_archive_to_extracted_mods_dir(
             mod_structure_type = ExtractionType.TYPE_E
             primary_mod_temp_dpath = unarchived_dpath
             extracted_mod_dname = _peel_affixes_from_fname(
-                archive_fname_no_ext)
+                archive_fname_no_ext
+            )
             primary_mod_dpath = os.path.join(
-                extracted_mods_dir_path, extracted_mod_dname, 
+                extracted_mods_dir_path,
+                extracted_mod_dname,
             )
             res = _get_tp2_fpaths(
                 unarchived_dpath,
