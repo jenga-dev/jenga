@@ -35,6 +35,7 @@ dynamic = [
   "version",
 ]
 dependencies = [
+  "rich",
   "birch",
   "charset-normalizer",
   "patool",

@@ -854,6 +854,7 @@ def run_build(
         components = mod["components"]
         install_list = mod["install_list"]
         prompt_for_manual_install = mod.get("prompt_for_manual_install", False)
+        force_uninstall = mod.get("force_uninstall", False)
 
         if prompt_for_manual_install:
             user_input = "blah"
@@ -885,7 +886,7 @@ def run_build(
         comp_res = mod_installation_comparison(
             mod_name, version, components, mods, i, installed_mods_info
         )
-        if comp_res.is_installed:
+        if comp_res.is_installed and not force_uninstall:
             installed_comp_str = ",".join(
                 [f"{c[0]}" for c in comp_res.installed_components]
             )
@@ -968,33 +969,33 @@ def run_build(
                             print_goodbye()
                             sys.exit(0)
 
-            if uninstall:
-                if installed_mods_info is None:
-                    fail_print(
-                        "Cannot uninstall mod without installed mods "
-                        "information."
-                    )
-                    write_ongoing_state(
-                        build_name, i - 1, mod_name, new_state_file_path
-                    )
-                    note_print(f"Build state saved to {new_state_file_path}")
-                    sys.exit(1)
-                uninst_sccs = uninstall_mod(
-                    mod_name,
-                    weidu_exec_path,
-                    game_install_dir,
-                    installed_mods_info,
+        if uninstall or force_uninstall:
+            if installed_mods_info is None:
+                fail_print(
+                    "Cannot uninstall mod without installed mods "
+                    "information."
                 )
-                if not uninst_sccs:
-                    fail_print(
-                        f"Failed to uninstall {mod_name}. Terminating the "
-                        "build process."
-                    )
-                    write_ongoing_state(
-                        build_name, i - 1, mod_name, new_state_file_path
-                    )
-                    note_print(f"Build state saved to {new_state_file_path}")
-                    sys.exit(1)
+                write_ongoing_state(
+                    build_name, i - 1, mod_name, new_state_file_path
+                )
+                note_print(f"Build state saved to {new_state_file_path}")
+                sys.exit(1)
+            uninst_sccs = uninstall_mod(
+                mod_name,
+                weidu_exec_path,
+                game_install_dir,
+                installed_mods_info,
+            )
+            if not uninst_sccs:
+                fail_print(
+                    f"Failed to uninstall {mod_name}. Terminating the "
+                    "build process."
+                )
+                write_ongoing_state(
+                    build_name, i - 1, mod_name, new_state_file_path
+                )
+                note_print(f"Build state saved to {new_state_file_path}")
+                sys.exit(1)
 
         log_file = f'setup-{mod_name.lower().replace(" ", "_")}.debug'
         log_file = os.path.join(game_install_dir, log_file)
