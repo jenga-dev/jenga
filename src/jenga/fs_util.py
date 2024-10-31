@@ -373,9 +373,9 @@ def _get_name_mapper_func_by_archive_fname(
     """Get the name mapper function by archive file name.
 
     This function returns a simple transformer build from the relevant name
-    mappers, if nay are found: A function that replaces all occurrences of a key
-    k (from the mappers dict) in the input string with the corresponding value
-    v.
+    mappers, if nay are found: A function that replaces all occurrences of a
+    key k (from the mappers dict) in the input string with the corresponding
+    value v.
 
     Thus, it is not adequate to handle replacements in file and directory
     paths.
