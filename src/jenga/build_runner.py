@@ -309,6 +309,7 @@ def get_start_index_from_build_state_file(state_file_path: str) -> int:
 def write_ongoing_state(
     build_name: str,
     index: int,
+    mod_name: str,
     state_file_path: str,
 ) -> None:
     """Write ongoing builg state to file.
@@ -319,11 +320,16 @@ def write_ongoing_state(
         The name of the build.
     index : int
         The index of the last installed mod.
+    mod_name : str
+        The name of the last installed mod.
     state_file_path : str
         The name of the state file.
 
     """
-    state = {"build_name": build_name, "last_mod_index": index}
+    state = {
+        "build_name": build_name, "last_mod_index": index,
+        "last_mod_name": mod_name,
+    }
     with open(state_file_path, "w", encoding="utf-8") as f:
         json.dump(state, f, indent=4)
 
@@ -525,7 +531,7 @@ def mod_installation_comparison(
         more_components_installed_than_expected=more_installed_than_expected,
         more_components_installed_than_planned=more_installed_than_planned,
         installed_components=installed_comp_list,
-        expected_components=comp_to_install_list,
+        expected_components=expected_components,
     )
 
 
@@ -860,7 +866,8 @@ def run_build(
                 user_input = input().strip().lower()
                 if user_input in ("m", "manual"):
                     oper_print("Halting the process based on user input.")
-                    write_ongoing_state(build_name, i, new_state_file_path)
+                    write_ongoing_state(
+                        build_name, i, mod_name, new_state_file_path)
                     sccs_print(f"Build state saved to {new_state_file_path}")
                     print_goodbye()
                     sys.exit(0)
@@ -951,7 +958,7 @@ def run_build(
                             continue
                         if user_input in ("t", "terminate"):
                             write_ongoing_state(
-                                build_name, i, new_state_file_path
+                                build_name, i, mod_name, new_state_file_path
                             )
                             note_print(
                                 f"Build state saved to {new_state_file_path}"
@@ -965,7 +972,8 @@ def run_build(
                         "Cannot uninstall mod without installed mods "
                         "information."
                     )
-                    write_ongoing_state(build_name, i - 1, new_state_file_path)
+                    write_ongoing_state(
+                        build_name, i - 1, mod_name, new_state_file_path)
                     note_print(f"Build state saved to {new_state_file_path}")
                     sys.exit(1)
                 uninst_sccs = uninstall_mod(
@@ -979,7 +987,8 @@ def run_build(
                         f"Failed to uninstall {mod_name}. Terminating the "
                         "build process."
                     )
-                    write_ongoing_state(build_name, i - 1, new_state_file_path)
+                    write_ongoing_state(
+                        build_name, i - 1, mod_name, new_state_file_path)
                     note_print(f"Build state saved to {new_state_file_path}")
                     sys.exit(1)
 
@@ -1139,7 +1148,8 @@ def run_build(
                 f"Could not find the mod directory or the .tp2 file for "
                 f"{mod_name}. Terminating the build process."
             )
-            write_ongoing_state(build_name, i - 1, new_state_file_path)
+            write_ongoing_state(
+                build_name, i - 1, mod_name, new_state_file_path)
             note_print(f"Build state saved to {new_state_file_path}")
             sys.exit(1)
 
@@ -1167,7 +1177,8 @@ def run_build(
                     note_print(
                         "Terminating the build process on user request."
                     )
-                    write_ongoing_state(build_name, i - 1, new_state_file_path)
+                    write_ongoing_state(
+                        build_name, i - 1, mod_name, new_state_file_path)
                     note_print(f"Build state saved to {new_state_file_path}")
                     sys.exit(0)
 
@@ -1178,7 +1189,8 @@ def run_build(
             )
             input_str = input().strip().lower()
             if input_str not in ("y", "yes"):
-                write_ongoing_state(build_name, i - 1, new_state_file_path)
+                write_ongoing_state(
+                    build_name, i - 1, mod_name, new_state_file_path)
                 note_print(f"Build state saved to {new_state_file_path}")
                 sys.exit(0)
         oper_print(f"Installing {mod_name}...")
@@ -1201,7 +1213,8 @@ def run_build(
                 f"[{OPER_CLR}]{mod_name}[/{OPER_CLR}] failed. "
                 "Terminating the build process."
             )
-            write_ongoing_state(build_name, i - 1, new_state_file_path)
+            write_ongoing_state(
+                build_name, i - 1, mod_name, new_state_file_path)
             note_print(f"Build state saved to {new_state_file_path}")
             sys.exit(1)
         elif status == InstallationStatus.WARNINGS:
@@ -1213,7 +1226,8 @@ def run_build(
             )
             user_input = input().strip().lower()
             if user_input not in ("yes", "y"):
-                write_ongoing_state(build_name, i, new_state_file_path)
+                write_ongoing_state(
+                    build_name, i, mod_name, new_state_file_path)
                 note_print(f"Build state saved to {new_state_file_path}")
                 sys.exit(1)
         sccs_print(f"{mod_name} installed successfully.")
@@ -1242,7 +1256,8 @@ def run_build(
             user_input = input().strip().lower()
             if user_input not in ("", "yes", "y"):
                 oper_print("Halting the process based on user input.")
-                write_ongoing_state(build_name, i, new_state_file_path)
+                write_ongoing_state(
+                    build_name, i, mod_name, new_state_file_path)
                 sccs_print(f"Build state saved to {new_state_file_path}")
                 print_goodbye()
                 sys.exit(0)
