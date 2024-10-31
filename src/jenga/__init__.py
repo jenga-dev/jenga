@@ -18,7 +18,7 @@ from .fs_util import (
     extract_some_archives_in_zipped_mods_dir_to_extracted_mods_dir,
     overwrite_game_dir_with_source_dir,
 )
-from .mod_data import(
+from .mod_data import (
     load_aliases_registry_from_config_dir,
 )
 from .mod_index import (
