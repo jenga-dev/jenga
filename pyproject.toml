@@ -35,11 +35,11 @@ dynamic = [
   "version",
 ]
 dependencies = [
-  "rich",
   "birch",
   "charset-normalizer",
   "patool",
   "pyyaml",
+  "rich",
   "thefuzz",
 ]
 urls.Source = "https://github.com/jenga-dev/jenga"
