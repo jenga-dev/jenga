@@ -392,7 +392,7 @@ class EetEndPdialogPartialLinesFix(JengaPrePostFix):
         jenga_config: Birch,
         run_config: dict,
     ) -> None:
-        fix_pdialog_files_in_directory(run_config["game_dir"])
+        fix_pdialog_files_in_directory(run_config["game_install_dir"])
 
 
 PRE_FIXES_REGISTRY: Dict[str, Sequence[JengaPrePostFix]] = {

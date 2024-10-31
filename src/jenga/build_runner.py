@@ -789,6 +789,9 @@ def run_build(
     run_config["prefer_zipped_mods"] = prefer_zipped_mods
     prefer_mod_index = config.get("prefer_mod_index", False)
     run_config["prefer_mod_index"] = prefer_mod_index
+    confirm_each_install = config.get("confirm_each_install", False)
+    run_config["confirm_each_install"] = confirm_each_install
+
     try:
         mods = build["mods"]
     except KeyError as e:
@@ -1168,6 +1171,16 @@ def run_build(
                     note_print(f"Build state saved to {new_state_file_path}")
                     sys.exit(0)
 
+        if confirm_each_install:
+            note_print(
+                f"About to install {mod_name}. Enter 'y'/'yes' to continue. "
+                "Any other input will halt the build process."
+            )
+            input_str = input().strip().lower()
+            if input_str not in ("y", "yes"):
+                write_ongoing_state(build_name, i - 1, new_state_file_path)
+                note_print(f"Build state saved to {new_state_file_path}")
+                sys.exit(0)
         oper_print(f"Installing {mod_name}...")
         status = execute_mod_installation(
             mod_name,
