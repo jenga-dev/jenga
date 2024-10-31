@@ -104,9 +104,9 @@ def fuzzy_find_file_or_dir(
     if len(name) > 5:
         fnfs = os.listdir(directory)
         candidates = []
-        for fof in fnfs:
-            if name.lower() in fof.lower():
-                candidates.append(fof)
+        for handle in fnfs:
+            if name.lower() in handle.lower():
+                candidates.append(handle)
         if len(candidates) == 1:
             if setup_file_search:
                 if candidates[0].endswith(TP2_EXT):
@@ -373,7 +373,7 @@ def _get_name_mapper_func_by_archive_fname(
     """Get the name mapper function by archive file name.
 
     This function returns a simple transformer build from the relevant name
-    mappers, if nay are found: A function that replaces all occurences of a key
+    mappers, if nay are found: A function that replaces all occurrences of a key
     k (from the mappers dict) in the input string with the corresponding value
     v.
 
@@ -541,7 +541,7 @@ def extract_archive_to_extracted_mods_dir(
         A dataclass containing the extraction result.
 
     """
-    # remove extention from the archive name
+    # remove extension from the archive name
     archive_fname = os.path.basename(archive_fpath)
     archive_fname_no_ext = os.path.splitext(archive_fname)[0]
 

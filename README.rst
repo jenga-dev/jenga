@@ -211,7 +211,7 @@ Jenga processes build configuration primarily through WeiDU log files which are 
 Build Configuration
 -------------------
 
-Build specific configuraiton is determined by the ``config`` section in the build file. The following options are available:
+Build specific configuration is determined by the ``config`` section in the build file. The following options are available:
 
 
 Here is an example of a JSON build file:

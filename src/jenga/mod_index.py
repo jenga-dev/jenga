@@ -1,4 +1,4 @@
-"""A simple mod infex inferred from extracted mods."""
+"""A simple mod index inferred from extracted mods."""
 
 # stdlib imports
 import json
@@ -29,7 +29,6 @@ from .mod_data import (
     clear_alias_registries_from_config_dir,
     dump_aliases_registry_to_config_dir,
     get_mod_name_by_alias,
-    load_aliases_registry_from_config_dir,
     reset_inmemory_alias_to_mod_registry,
     reset_inmemory_mod_to_alias_list_registry,
 )
@@ -99,7 +98,7 @@ def read_mod_ini_file(ini_fpath: str) -> Dict[str, str]:
     for line in ini_lines:
         if metadata_section:
             if "=" in line:
-                # split on the firt occurence of "="
+                # split on the first occurrence of "="
                 key, value = line.split("=", 1)
                 key_value_pairs[key.strip().lower()] = value.strip()
         if "[Metadata]" in line:
@@ -281,24 +280,24 @@ def populate_mod_index_by_dpath(
     # and for each folder, determine mod attributes like so:
     oper_print("Populating mod index from the extracted mods folder...")
     entries = list(os.scandir(extracted_mods_dpath))
-    for fof in track(
+    for handle in track(
         entries,
         description="Processing mods...",
     ):
         mod_info = None
-        if fof.is_dir():
-            if _is_likely_mod_dir_name(fof.name):
+        if handle.is_dir():
+            if _is_likely_mod_dir_name(handle.name):
                 # try:
-                mod_info = mod_info_from_dpath(fof.path)
+                mod_info = mod_info_from_dpath(handle.path)
                 # except Exception as e:
                 #     note_print(
-                #         f"Error while processing mod dir at {fof.path}: {e}"
+                #         f"Error while processing mod dir at {handle.path}: {e}"
                 #         "\nSkipping this mod."
                 #     )
             if mod_info is not None:
                 mod_key = mod_info.name.lower()
                 MOD_INDEX[mod_key] = mod_info
-                # handle the unqiue case of name mappers, for mods like
+                # handle the unique case of name mappers, for mods like
                 # ir_revised and sr_revised, which confuse with aliases they
                 # shouldn't have, like "item_rev" and "spell_rev", respectively
                 archive_fname = mod_info.archive_fname

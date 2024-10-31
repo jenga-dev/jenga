@@ -51,9 +51,9 @@ def resume_partial_build(
         Optional[str],
         typer.Option(
             help=(
-                "The path to the state file to resume from. If not provided, the game "
-                "directory will be searched for the most recent state file for this "
-                "build."
+                "The path to the state file to resume from. If not provided, "
+                "the game directory will be searched for the most recent state"
+                " file for this build."
             )
         ),
     ] = None,

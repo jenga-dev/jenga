@@ -26,9 +26,9 @@ SOFT_ERROR_CODES_LIST = (
     HIDE_ERROR_CODES_LIST
     + [
         # 'SS06',  # Summary should fit in a single line
-        # 'GL01',  # Docstring text (summary) should start in the line immediately
-        # after the opening quotes (not in the same line, or leaving a blank line
-        # in between)
+        # 'GL01',  # Docstring text (summary) should start in the line
+        # immediately after the opening quotes (not in the same line, or
+        # leaving a blank line in between)
     ]
 )
 
@@ -40,7 +40,7 @@ SOFT_ERROR_PATTERN = re.compile(SOFT_ERROR_REGEX)
 
 
 def get_npdoc_val_report(object_name) -> bool:
-    """Prints a numpydoc validation report of the object of the given name.
+    """Print a numpydoc validation report of the object of the given name.
 
     Parameters
     ----------

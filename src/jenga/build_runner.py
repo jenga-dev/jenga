@@ -431,7 +431,7 @@ def _get_cumulative_installed_mod_components_by_idx(
 
 
 @dataclass
-class ModInstallComaprisonResult:
+class ModInstallComparisonResult:
     is_installed: bool
     is_installed_identically: bool
     installed_components_match_expected_status: bool
@@ -448,7 +448,7 @@ def mod_installation_comparison(
     mod_order: List[Dict[str, Any]],
     current_build_order_index: int,
     installed_mods_info: dict,
-) -> ModInstallComaprisonResult:
+) -> ModInstallComparisonResult:
     """Check if the mod is installed identically.
 
     Parameters
@@ -468,7 +468,7 @@ def mod_installation_comparison(
 
     Returns
     -------
-    ModInstallComaprisonResult
+    ModInstallComparisonResult
         Various relevant information on the current installation, if any,
         of the given mod when compared with the desired components to install
         and the expected status of installed components at the current point
@@ -489,7 +489,7 @@ def mod_installation_comparison(
             expectations_match = True
         else:
             expectations_match = False
-        return ModInstallComaprisonResult(
+        return ModInstallComparisonResult(
             is_installed=False,
             is_installed_identically=False,
             installed_components_match_expected_status=expectations_match,
@@ -525,7 +525,7 @@ def mod_installation_comparison(
     oper_print(f"comp_match: {comp_match}")
     oper_print(f"expectations_match: {expectations_match}")
     is_installed_identically = version_match and comp_match
-    return ModInstallComaprisonResult(
+    return ModInstallComparisonResult(
         is_installed=True,
         is_installed_identically=is_installed_identically,
         installed_components_match_expected_status=expectations_match,
@@ -1166,7 +1166,7 @@ def run_build(
             oper_print(f"Applying pre-fixes for {mod_name}...")
             for fix in pre_fixes:
                 note_print(
-                    f"Shoud {fix.fix_name} be applied? Type 'y'/'yes' to"
+                    f"Should {fix.fix_name} be applied? Type 'y'/'yes' to"
                     " apply, 't'/'terminate' to terminate build execution, "
                     "or any other key to skip."
                 )
