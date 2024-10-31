@@ -327,7 +327,8 @@ def write_ongoing_state(
 
     """
     state = {
-        "build_name": build_name, "last_mod_index": index,
+        "build_name": build_name,
+        "last_mod_index": index,
         "last_mod_name": mod_name,
     }
     with open(state_file_path, "w", encoding="utf-8") as f:
@@ -867,7 +868,8 @@ def run_build(
                 if user_input in ("m", "manual"):
                     oper_print("Halting the process based on user input.")
                     write_ongoing_state(
-                        build_name, i, mod_name, new_state_file_path)
+                        build_name, i, mod_name, new_state_file_path
+                    )
                     sccs_print(f"Build state saved to {new_state_file_path}")
                     print_goodbye()
                     sys.exit(0)
@@ -973,7 +975,8 @@ def run_build(
                         "information."
                     )
                     write_ongoing_state(
-                        build_name, i - 1, mod_name, new_state_file_path)
+                        build_name, i - 1, mod_name, new_state_file_path
+                    )
                     note_print(f"Build state saved to {new_state_file_path}")
                     sys.exit(1)
                 uninst_sccs = uninstall_mod(
@@ -988,7 +991,8 @@ def run_build(
                         "build process."
                     )
                     write_ongoing_state(
-                        build_name, i - 1, mod_name, new_state_file_path)
+                        build_name, i - 1, mod_name, new_state_file_path
+                    )
                     note_print(f"Build state saved to {new_state_file_path}")
                     sys.exit(1)
 
@@ -1149,7 +1153,8 @@ def run_build(
                 f"{mod_name}. Terminating the build process."
             )
             write_ongoing_state(
-                build_name, i - 1, mod_name, new_state_file_path)
+                build_name, i - 1, mod_name, new_state_file_path
+            )
             note_print(f"Build state saved to {new_state_file_path}")
             sys.exit(1)
 
@@ -1178,7 +1183,8 @@ def run_build(
                         "Terminating the build process on user request."
                     )
                     write_ongoing_state(
-                        build_name, i - 1, mod_name, new_state_file_path)
+                        build_name, i - 1, mod_name, new_state_file_path
+                    )
                     note_print(f"Build state saved to {new_state_file_path}")
                     sys.exit(0)
 
@@ -1190,7 +1196,8 @@ def run_build(
             input_str = input().strip().lower()
             if input_str not in ("y", "yes"):
                 write_ongoing_state(
-                    build_name, i - 1, mod_name, new_state_file_path)
+                    build_name, i - 1, mod_name, new_state_file_path
+                )
                 note_print(f"Build state saved to {new_state_file_path}")
                 sys.exit(0)
         oper_print(f"Installing {mod_name}...")
@@ -1214,7 +1221,8 @@ def run_build(
                 "Terminating the build process."
             )
             write_ongoing_state(
-                build_name, i - 1, mod_name, new_state_file_path)
+                build_name, i - 1, mod_name, new_state_file_path
+            )
             note_print(f"Build state saved to {new_state_file_path}")
             sys.exit(1)
         elif status == InstallationStatus.WARNINGS:
@@ -1227,7 +1235,8 @@ def run_build(
             user_input = input().strip().lower()
             if user_input not in ("yes", "y"):
                 write_ongoing_state(
-                    build_name, i, mod_name, new_state_file_path)
+                    build_name, i, mod_name, new_state_file_path
+                )
                 note_print(f"Build state saved to {new_state_file_path}")
                 sys.exit(1)
         sccs_print(f"{mod_name} installed successfully.")
@@ -1257,7 +1266,8 @@ def run_build(
             if user_input not in ("", "yes", "y"):
                 oper_print("Halting the process based on user input.")
                 write_ongoing_state(
-                    build_name, i, mod_name, new_state_file_path)
+                    build_name, i, mod_name, new_state_file_path
+                )
                 sccs_print(f"Build state saved to {new_state_file_path}")
                 print_goodbye()
                 sys.exit(0)
