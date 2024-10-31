@@ -369,10 +369,6 @@ def load_mod_index_from_config() -> None:
     sccs_print("Mod index loaded from config directory.")
 
 
-load_mod_index_from_config()
-load_aliases_registry_from_config_dir()
-
-
 def populate_mod_index_from_extracted_mods_dir(
     verbose: Optional[bool] = False,
 ) -> None:

@@ -13,6 +13,8 @@ from jenga import (
     extract_all_archives_in_zipped_mods_dir_to_extracted_mods_dir,
     extract_some_archives_in_zipped_mods_dir_to_extracted_mods_dir,
     overwrite_game_dir_with_source_dir,
+    load_aliases_registry_from_config_dir,
+    load_mod_index_from_config,
     populate_mod_index_from_extracted_mods_dir,
     print_config_info_box,
     run_build,
@@ -33,6 +35,8 @@ def run_full_build(
     ],
 ) -> None:
     """Run a full build of a modded BG:EET game."""
+    load_mod_index_from_config()
+    load_aliases_registry_from_config_dir()
     run_build(
         build_file_path=build_file_path,
     )
@@ -55,6 +59,8 @@ def resume_partial_build(
     ] = None,
 ) -> None:
     """Resume a partial build of an BG:EET game."""
+    load_mod_index_from_config()
+    load_aliases_registry_from_config_dir()
     run_build(
         build_file_path=build_file_path,
         state_file_path=state_file_path,
@@ -184,6 +190,7 @@ def populate_mod_index(
     ] = False,
 ) -> None:
     """Populate the mod index from the extracted mods directory."""
+    load_aliases_registry_from_config_dir()
     populate_mod_index_from_extracted_mods_dir(verbose=verbose)
 
 
@@ -193,6 +200,7 @@ def extract_zipped_mods_and_populate_mod_index() -> None:
     mod index.
     """
     extract_all_archives_in_zipped_mods_dir_to_extracted_mods_dir()
+    load_aliases_registry_from_config_dir()
     populate_mod_index_from_extracted_mods_dir()
 
 
