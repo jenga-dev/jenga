@@ -1,13 +1,12 @@
 """Validate numpy docstrings throughout jenga."""
 
-import re
-import sys
 import inspect
+import re
 import subprocess
+import sys
 from typing import List
 
 import jenga  # noqa: F401
-
 
 # REGEXES
 
@@ -17,18 +16,25 @@ HIDE_ERROR_CODES_LIST = [
     "EX01",  # No examples section found
 ]
 
-HIDE_ERROR_REGEX = "|".join([":{}:".format(code) for code in HIDE_ERROR_CODES_LIST])
+HIDE_ERROR_REGEX = "|".join(
+    [":{}:".format(code) for code in HIDE_ERROR_CODES_LIST]
+)
 
 HIDE_ERROR_PATTERN = re.compile(HIDE_ERROR_REGEX)
 
-SOFT_ERROR_CODES_LIST = HIDE_ERROR_CODES_LIST + [
-    # 'SS06',  # Summary should fit in a single line
-    # 'GL01',  # Docstring text (summary) should start in the line immediately
-    # after the opening quotes (not in the same line, or leaving a blank line
-    # in between)
-]
+SOFT_ERROR_CODES_LIST = (
+    HIDE_ERROR_CODES_LIST
+    + [
+        # 'SS06',  # Summary should fit in a single line
+        # 'GL01',  # Docstring text (summary) should start in the line immediately
+        # after the opening quotes (not in the same line, or leaving a blank line
+        # in between)
+    ]
+)
 
-SOFT_ERROR_REGEX = "|".join([":{}:".format(code) for code in SOFT_ERROR_CODES_LIST])
+SOFT_ERROR_REGEX = "|".join(
+    [":{}:".format(code) for code in SOFT_ERROR_CODES_LIST]
+)
 
 SOFT_ERROR_PATTERN = re.compile(SOFT_ERROR_REGEX)
 
@@ -46,6 +52,7 @@ def get_npdoc_val_report(object_name) -> bool:
     bool
         True if any hard errors were found (errors not defined as soft errors
         in the SOFT_ERROR_CODES_LIST).
+
     """
     any_hard_errors = False
     try:
@@ -136,8 +143,7 @@ module_blacklist = ["_version", "cfg"]
 
 
 def validate_module(module_name: str) -> bool:
-    """
-    Validate numpy docstrings in an entire module.
+    """Validate numpy docstrings in an entire module.
 
     Parameters
     ----------
@@ -148,6 +154,7 @@ def validate_module(module_name: str) -> bool:
     -------
     bool
         True if any hard errors were found; False otherwise.
+
     """
     print(f"Validating numpy docstrings in the {module_name} module!")
     obj_w_hard_errors = []
