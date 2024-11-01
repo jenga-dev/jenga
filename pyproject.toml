@@ -98,6 +98,7 @@ lint.ignore = [
   "S103",
   "S602",
   "S603",
+  "S605",
   "S607",
 ]
 lint.per-file-ignores."src/**/__init__.py" = [

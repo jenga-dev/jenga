@@ -103,8 +103,8 @@ def _get_mod_info_from_installed_mods_info(
                     continue
         if not mod_installation:
             fail_print(
-                f"Could not find information about {mod_name} in the installed "
-                "mods info."
+                f"Could not find information about {mod_name} in the installed"
+                " mods info."
             )
         return mod_installation
 
@@ -140,8 +140,8 @@ def uninstall_mod(
     )
     if not mod_installation:
         fail_print(
-            f"Could not find information about {mod_name} in the installed mods "
-            "info. Cannot uninstall."
+            f"Could not find information about {mod_name} in the installed "
+            "mods info. Cannot uninstall."
         )
         return False
     tp2_rel_fpath = mod_installation["tp2_rel_fpath"]
@@ -407,7 +407,7 @@ def _get_cumulative_installed_mod_components_by_idx(
 
     Parameters
     ----------
-    index : int
+    current_build_order_index : int
         The index of the mod in the mod order list.
     mod_name : str
         The name of the mod.
@@ -432,6 +432,8 @@ def _get_cumulative_installed_mod_components_by_idx(
 
 @dataclass
 class ModInstallComparisonResult:
+    """The result of the mod installation comparison."""
+
     is_installed: bool
     is_installed_identically: bool
     installed_components_match_expected_status: bool
@@ -485,10 +487,7 @@ def mod_installation_comparison(
         mod_name, installed_mods_info
     )
     if not mod_installation:
-        if len(expected_components) == 0:
-            expectations_match = True
-        else:
-            expectations_match = False
+        expectations_match = len(expected_components) == 0
         return ModInstallComparisonResult(
             is_installed=False,
             is_installed_identically=False,
@@ -578,6 +577,16 @@ def _resolve_game_dir(
 
 
 def print_run_config_info_box(runcfg: dict, console: Console) -> None:
+    """Print the run configuration information in a rich info box.
+
+    Parameters
+    ----------
+    runcfg : dict
+        The run configuration information.
+    console : Console
+        The rich console object.
+
+    """
     tcolor = OPER_CLR
     table1 = Table()
     table1.add_column(

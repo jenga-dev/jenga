@@ -9,7 +9,7 @@ UNVERSIONED_MOD_MARKER = "UNVERSIONED"
 
 def _get_tp2_rel_path_from_line(line: str) -> str:
     # Parse the line using regular expressions
-    # line = ~mod_name/tp2_file.TP2~ #language_int #component_number // component_description: version
+    # line = ~mod_name/tp2_file.TP2~ #language_int #component_number // component_description: version  # noqa: E501
     match = re.match(
         r"~(.+\.TP2)~.*",
         line,

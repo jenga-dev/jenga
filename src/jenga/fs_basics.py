@@ -104,6 +104,14 @@ def mirror_backslashes_in_file(
 
 
 def check_all_files_in_dir_are_writeable(path: str) -> None:
+    """Check if all files in the directory are writable.
+
+    Parameters
+    ----------
+    path : str
+        The path to the directory.
+
+    """
     for root, dirs, files in os.walk(path):
         # check perms for sub-directories
         for momo in dirs:
@@ -121,6 +129,14 @@ def check_all_files_in_dir_are_writeable(path: str) -> None:
 
 
 def make_all_files_in_dir_writable(path: str) -> None:
+    """Make all files in the directory writable.
+
+    Parameters
+    ----------
+    path : str
+        The path to the directory.
+
+    """
     jprint(f"[green]Making all files in {path} writable...")
     os.system(f'sudo chmod 777 "{path}"')
     os.system(f'sudo chmod -R 777 "{path}"')
@@ -193,7 +209,8 @@ def fuzzy_find(
 
     """
     if file_types is None:
-        _is_valid_entry = lambda entry: True
+        def _is_valid_entry(entry: str) -> bool:
+            return True
     else:
         kfile_types = file_types
 

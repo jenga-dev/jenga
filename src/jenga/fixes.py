@@ -42,6 +42,7 @@ class JengaPrePostFix:
     """
 
     def __init__(self, mod_name):
+        """Initialize the JengaPrePostFix object."""
         self.mod_name = mod_name
         self.fix_name = "JengaPrePostFix"
 
@@ -66,7 +67,7 @@ class JengaPrePostFix:
             The run configuration.
 
         """
-        raise NotImplementeodError("Fixes must implement the apply method.")
+        raise NotImplementedError("Fixes must implement the apply method.")
 
 
 class JengaCmdFix:
@@ -85,6 +86,7 @@ class JengaCmdFix:
     """
 
     def __init__(self, mod_name):
+        """Initialize the JengaCmdFix object."""
         self.mod_name = mod_name
         self.fix_name = "JengaPrePostFix"
 
@@ -111,7 +113,7 @@ class JengaCmdFix:
             The altered command.
 
         """
-        raise NotImplementeodError("Fixes must implement the apply method.")
+        raise NotImplementedError("Fixes must implement the apply method.")
 
 
 # ===== EET Fixes =====
@@ -125,6 +127,7 @@ class EetCopyEetCommandFilePreFix(JengaPrePostFix):
     """
 
     def __init__(self, mod_name):
+        """Initialize the EetCopyEetCommandFilePreFix object."""
         super().__init__(mod_name)
         self.fix_name = "EetCopyEetCommandFilePreFix"
 
@@ -135,6 +138,7 @@ class EetCopyEetCommandFilePreFix(JengaPrePostFix):
         jenga_config: Birch,
         run_config: dict,
     ) -> None:
+        """Copy the EET command file to the game directory."""
         # find the setup-EET.command file
         eet_cmd_fname = None
         eet_cmd_fpath = None
@@ -171,6 +175,7 @@ class EetAddBg1PathCmdFix(JengaCmdFix):
     # https://rawgit.com/K4thos/EET/master/EET/readme-EET.html
 
     def __init__(self, mod_name):
+        """Initialize the EetAddBg1PathCmdFix object."""
         super().__init__(mod_name)
         self.fix_name = "EetAddBg1PathCmdFix"
 
@@ -180,64 +185,22 @@ class EetAddBg1PathCmdFix(JengaCmdFix):
         jenga_config: Birch,
         run_config: dict,
     ) -> List[str]:
+        """Add the BG1 path to the EET install command."""
         # Add the BG1 path to the command
         try:
             bg1_path = jenga_config[CfgKey.BGIIEE_DIR_PATHS][
                 CfgKey.BGEE_SOURCE
             ]
-        except KeyError:
+        except KeyError as e:
             raise ValueError(
                 "BGIIEE_DIR_PATHS.BGEE_SOURCE not found in the Jenga config."
                 "It must be set to the path of the BG1 directory in order for"
                 " the EET installation to work correctly."
-            )
+            ) from e
         cmd.append("--args-list")
         cmd.append("sp")
         cmd.append(f'"{bg1_path}"')
         return cmd
-
-
-# ===== AnotherFineHell Fixes =====
-
-
-class AnotherFineHellAfhvisFix(JengaPrePostFix):
-    __doc__ = (
-        JengaPrePostFix.__doc__
-        + """
-    Fixes an issue for AnotherFineHell on MacOS where installation fails du to
-    ERROR: error loading [c#anotherfinehell/scripts/c#afhvis.baf]
-    ERROR: compiling [c#anotherfinehell/scripts/c#afhvis.baf]!
-    """
-    )
-
-    def __init__(self, mod_name):
-        super().__init__(mod_name)
-        self.fix_name = "AnotherFineHellAfhvisFix"
-
-    AFVIS_FNAME = "c#afhvis.baf"
-    REP_FNAME = "c#afhjng.baf"
-    SCR_DNAME = "scripts"
-
-    def apply(
-        self,
-        mod_dir: str,
-        mod_tp2_path: str,
-        jenga_config: Birch,
-        run_config: dict,
-    ) -> None:
-        afvis_path = os.path.join(mod_dir, self.SCR_DNAME, self.AFVIS_FNAME)
-        rep_path = os.path.join(mod_dir, self.SCR_DNAME, self.REP_FNAME)
-        # copy afvhvis.baf to afhjng.baf
-        shutil.copy(afvis_path, rep_path)
-        # update tp2 file to use afhjng.baf for the the MOVE command
-        with open(mod_tp2_path, "r") as f:
-            lines = f.readlines()
-        with open(mod_tp2_path, "w") as f:
-            for line in lines:
-                if self.AFVIS_FNAME in line and line.startswith("MOVE"):
-                    f.write(line.replace(self.AFVIS_FNAME, self.REP_FNAME))
-                else:
-                    f.write(line)
 
 
 # ===== Crucible Fixes =====
@@ -253,13 +216,14 @@ class CrucibleMihModConflictIgnore(JengaPrePostFix):
     """
 
     def __init__(self, mod_name):
+        """Initialize the CrucibleMihModConflictIgnore object."""
         super().__init__(mod_name)
         self.fix_name = "CrucibleMihModConflictIgnore"
 
     LINE_TO_DELETE = (
         "REQUIRE_PREDICATE !FILE_EXISTS ~mih_eq/setup-mih_eq.tp2~ @3002"
     )
-    SEARCH_TOKEN = "setup-mih_eq.tp2"
+    SEARCH_TERM = "setup-mih_eq.tp2"
 
     def apply(
         self,
@@ -268,13 +232,14 @@ class CrucibleMihModConflictIgnore(JengaPrePostFix):
         jenga_config: Birch,
         run_config: dict,
     ) -> None:
+        """Bypass the Crucible mod conflict with MIH_EQ."""
         # Read the tp2 file in mod_tp2_path and remove all lines containing
-        # the SEARCH_TOKEN
+        # the SEARCH_TERM
         with open(mod_tp2_path, "r") as f:
             lines = f.readlines()
         with open(mod_tp2_path, "w") as f:
             for line in lines:
-                if self.SEARCH_TOKEN not in line:
+                if self.SEARCH_TERM not in line:
                     f.write(line)
 
 
@@ -285,6 +250,7 @@ class ItemRevAugmentWithIrRevised(JengaPrePostFix):
     """Augments item_rev with ir_revised."""
 
     def __init__(self, mod_name):
+        """Initialize the ItemRevAugmentWithIrRevised object."""
         super().__init__(mod_name)
         self.fix_name = "ItemRevAugmentWithIrRevised"
 
@@ -295,6 +261,7 @@ class ItemRevAugmentWithIrRevised(JengaPrePostFix):
         jenga_config: Birch,
         run_config: dict,
     ) -> None:
+        """Augments item_rev with ir_revised."""
         irr_info = get_mod_info("ir_revised")
         if irr_info is None:
             return
@@ -311,6 +278,7 @@ class SpellRevAugmentWithSrRevised(JengaPrePostFix):
     """Augments spell_rev with sr_revised."""
 
     def __init__(self, mod_name):
+        """Initialize the SpellRevAugmentWithSrRevised object."""
         super().__init__(mod_name)
         self.fix_name = "SpellRevAugmentWithSrRevised"
 
@@ -321,6 +289,7 @@ class SpellRevAugmentWithSrRevised(JengaPrePostFix):
         jenga_config: Birch,
         run_config: dict,
     ) -> None:
+        """Augments spell_rev with sr_revised."""
         srr_info = get_mod_info("sr_revised")
         if srr_info is None:
             return
@@ -371,17 +340,17 @@ def fix_pdialog_file(file_path: str) -> None:
 
 
 class EetEndPdialogPartialLinesFix(JengaPrePostFix):
-    __doc__ = (
-        JengaPrePostFix.__doc__
-        + """
+    """Prevent EET_end failure by deleting badly formatter pdialog.2da lines.
+
     Fixes an issue for EET_END where installation fails due to
     badly formatted lines in pdialog.2da, probably caused by Glam's NPC Pack.
     See here for more:
     https://www.gibberlings3.net/forums/topic/36138-install-issue-with-some-mods-glams-thalantyr/
+
     """
-    )
 
     def __init__(self, mod_name):
+        """Initialize the EetEndPdialogPartialLinesFix object."""
         super().__init__(mod_name)
         self.fix_name = "EetEndPdialogPartialLinesFix"
 
@@ -392,6 +361,7 @@ class EetEndPdialogPartialLinesFix(JengaPrePostFix):
         jenga_config: Birch,
         run_config: dict,
     ) -> None:
+        """Fix the EET_END mod."""
         fix_pdialog_files_in_directory(run_config["game_install_dir"])
 
 
@@ -399,9 +369,6 @@ PRE_FIXES_REGISTRY: Dict[str, Sequence[JengaPrePostFix]] = {
     EET.lower(): [
         EetCopyEetCommandFilePreFix(EET),
     ],
-    # AFH.lower(): [
-    #     AnotherFineHellAfhvisFix(AFH),
-    # ],
     CRUCIBLE.lower(): [
         CrucibleMihModConflictIgnore(CRUCIBLE),
     ],

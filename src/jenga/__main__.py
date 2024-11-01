@@ -77,9 +77,9 @@ def convert_weidu_log_to_json_build_file(
         Optional[str],
         typer.Option(
             help=(
-                "The path to the json build file to create. If not provided, a file "
-                "named '<date:time>_jenga_build_from_weidu_log.json' will be created "
-                "in the same directory as the WeiDU log file."
+                "The path to the json build file to create. If not provided, "
+                "a file named '<date:time>_jenga_build_from_weidu_log.json' "
+                "will be created in the same directory as the WeiDU log file."
             )
         ),
     ] = None,
@@ -97,9 +97,9 @@ def convert_weidu_log_to_yaml_build_file(
         Optional[str],
         typer.Option(
             help=(
-                "The path to the yaml build file to create. If not provided, a file "
-                "named '<date:time>_jenga_build_from_weidu_log.yaml' will be created "
-                "in the same directory as the WeiDU log file."
+                "The path to the yaml build file to create. If not provided, "
+                "a file named '<date:time>_jenga_build_from_weidu_log.yaml' "
+                "will be created in the same directory as the WeiDU log file."
             )
         ),
     ] = None,
@@ -118,8 +118,8 @@ def convert_build_file_to_build_order_file(
         typer.Option(
             help=(
                 "The path to the build order file to create. If not provided, "
-                "a file named 'jenga_build_order_<build_file_name>.json' will be "
-                "created in the same directory as the build file."
+                "a file named 'jenga_build_order_<build_file_name>.json' will"
+                " be created in the same directory as the build file."
             )
         ),
     ] = None,
@@ -140,8 +140,9 @@ def reorder_build_file_by_build_order_file(
         Optional[str],
         typer.Option(
             help=(
-                "The path to the reordered build file to create. If not provided, "
-                "a file named 'reordered_<build_file_name>.json' will be created "
+                "The path to the reordered build file to create. If not "
+                "provided, a file named 'reordered_<build_file_name>.json' "
+                "will be created "
                 "in the same directory as the build file."
             )
         ),
@@ -167,7 +168,8 @@ def extract_some_zipped_mods_to_extracted_mods(
         str,
         typer.Argument(
             help=(
-                "All archives with names containing this string will be extracted."
+                "All archives with names containing this string will be "
+                "extracted."
             )
         ),
     ],
@@ -196,9 +198,7 @@ def populate_mod_index(
 
 @app.command()
 def extract_zipped_mods_and_populate_mod_index() -> None:
-    """Extract all zipped mods to the extracted mods directory and populate the
-    mod index.
-    """
+    """Extract all zipped mods and populate the mod index."""
     extract_all_archives_in_zipped_mods_dir_to_extracted_mods_dir()
     load_aliases_registry_from_config_dir()
     populate_mod_index_from_extracted_mods_dir()
@@ -209,7 +209,8 @@ def overwrite_game_dir_with_clean_source_dir(
     game: Annotated[
         str,
         typer.Argument(
-            help="The game alias to overwrite the game directory for. E.g. 'BG2EE'."
+            help="The game alias to overwrite the game directory for. E.g. "
+            "'BG2EE'."
         ),
     ],
     eet: Annotated[

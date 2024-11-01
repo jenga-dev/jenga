@@ -108,11 +108,9 @@ def fuzzy_find_file_or_dir(
             if name.lower() in handle.lower():
                 candidates.append(handle)
         if len(candidates) == 1:
-            if setup_file_search:
-                if candidates[0].endswith(TP2_EXT):
+            if setup_file_search and candidates[0].endswith(TP2_EXT):
                     return os.path.join(directory, candidates[0])
-            if archive_search:
-                if candidates[0].endswith(ARCHIVE_EXT):
+            if archive_search and candidates[0].endswith(ARCHIVE_EXT):
                     return os.path.join(directory, candidates[0])
         low_candidates = [cand.lower() for cand in candidates]
         if setup_file_search:
@@ -199,7 +197,10 @@ def tp2_fpath_from_mod_dpath(mod_dpath: str, mod_name: str) -> str:
 
 
 class ExtractionType(Enum):
+    """Enum for the type of extraction operation."""
+
     def __str__(self):
+        """Return the string representation of the enum."""
         if self == ExtractionType.TYPE_A:
             return (
                 "<ExtractionType.TYPE_A: Single mod folder with a .tp2 file "
@@ -228,6 +229,7 @@ class ExtractionType(Enum):
         return self.name
 
     def __repr__(self):
+        """Return the string representation of the enum."""
         return str(self)
 
     TYPE_A = 1  # Single mod folder with .tp2 file inside
@@ -336,7 +338,7 @@ def get_tp2_names_and_paths(
         A dictionary containing the names and paths of all .tp2 files.
 
     """
-    _print = lambda x: print(x) if verbose else None
+    def _print(x): print(x) if verbose else None
     _print(f"Traversal starting at '{dir_path}'...")
     mod_tp2_fnames = {}
     for root, _, files in os.walk(dir_path):
@@ -409,7 +411,7 @@ _VERSION_SUFFIX_REGEX = (
     r"([-|\s|_]?(v|V)?([0-9\.\_\-]+|master|main|alpha|beta|Beta|a|b|rc)+)$"
 )
 _VERSION_SUFFIX_PAT = re.compile(_VERSION_SUFFIX_REGEX)
-_BAD_CHARSET = set(["a", "b", "r", "c"])
+_BAD_CHARSET = {"a", "b", "r", "c"}
 
 
 def _remove_version_suffix(
@@ -444,7 +446,7 @@ def _remove_version_suffix(
             return ""
         return fname
     vcomp = match.group(0).lower()
-    charset = set([c for c in vcomp])
+    charset = set(vcomp)
     # if charset is a subset of _BAD_CHARSET, then this isi a bad match
     if charset.issubset(_BAD_CHARSET):
         if return_version:
@@ -583,11 +585,7 @@ def extract_archive_to_extracted_mods_dir(
     if len(files_and_folders_in_temp) == 1:
         kname = files_and_folders_in_temp[0]
         kpath = os.path.join(temp_dir, kname)
-        if os.path.isdir(kpath):
-            # we have a single folder in the temp dir
-            unarchived_dpath = kpath
-        else:
-            unarchived_dpath = temp_dir
+        unarchived_dpath = kpath if os.path.isdir(kpath) else temp_dir
     else:
         unarchived_dpath = temp_dir
     archive_file_and_dir_names = os.listdir(unarchived_dpath)
@@ -1020,6 +1018,10 @@ def extract_zipped_mods_in_dir_to_dir(
         The path to the directory containing the zipped mods.
     extracted_mods_dpath : str
         The path to the directory containing the extracted mods.
+    archive_name_inclusion_criteria : Optional[Callable[[str], bool]], optional
+        A function that takes an archive name and returns True if the archive
+        should be included in the extraction process, and False otherwise.
+        Default is None.
 
     """
     dir_items = os.listdir(zip_mods_dpath)
@@ -1035,8 +1037,7 @@ def extract_zipped_mods_in_dir_to_dir(
             if archive_name_inclusion_criteria(archive)
         ]
     n = len(archives)
-    done = 0
-    for archive in archives:
+    for i, archive in enumerate(archives):
         res = None
         archive_file_path = os.path.join(zip_mods_dpath, archive)
         oper_print(f"Extracting {archive}...")
@@ -1046,8 +1047,7 @@ def extract_zipped_mods_in_dir_to_dir(
             )
         except IllformedModArchiveError as e:
             note_print(f"Error extracting {archive}: {e}")
-        done += 1
-        pct = (done / n) * 100
+        pct = (i / n) * 100
         oper_print(f"[{pct:.2f}%] Finished extracting {archive}:\n {res}")
 
 
@@ -1064,7 +1064,8 @@ def extract_some_archives_in_zipped_mods_dir_to_extracted_mods_dir(
     """Extract all archives in the zipped mods dir to the extracted dir."""
     zipped_dpath = demand_zipped_mod_cache_dir_path()
     extracted_dpath = demand_extracted_mod_cache_dir_path()
-    criteria = lambda name: mod_name_part.lower() in name.lower()
+    def criteria(name: str) -> bool:
+        return mod_name_part.lower() in name.lower()
     extract_zipped_mods_in_dir_to_dir(
         zipped_dpath,
         extracted_dpath,

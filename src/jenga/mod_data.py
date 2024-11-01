@@ -134,6 +134,8 @@ def add_alias_to_mod(alias: str, mod: str) -> None:
     ----------
     alias : str
         The alias of the mod.
+    mod : str
+        The name of the mod.
 
     """
     extra_alias = None
@@ -174,7 +176,7 @@ _REV_ALIAS_REG_FNAME = "mod_alias_registry_reversed.json"
 
 
 def dump_aliases_registry_to_config_dir() -> None:
-    """Writes the mod alias registry to the config directory as a json file."""
+    """Write the mod alias registry to the config directory as a json file."""
     ALIAS_REGISTRY_FPATH = os.path.join(
         get_xdg_config_dpath(), _ALIAS_REG_FNAME
     )
@@ -189,7 +191,7 @@ def dump_aliases_registry_to_config_dir() -> None:
 
 
 def load_aliases_registry_from_config_dir() -> None:
-    """Loads the mod alias registry from the config directory."""
+    """Load the mod alias registry from the config directory."""
     global ALIAS_TO_MOD_REGISTRY, MOD_TO_ALIAS_LIST_REGISTRY
     ALIAS_REGISTRY_FPATH = os.path.join(
         get_xdg_config_dpath(), _ALIAS_REG_FNAME
@@ -219,7 +221,7 @@ def load_aliases_registry_from_config_dir() -> None:
 
 
 def clear_alias_registries_from_config_dir() -> None:
-    """Clears the mod alias registries from the config directory."""
+    """Clear the mod alias registries from the config directory."""
     ALIAS_REGISTRY_FPATH = os.path.join(
         get_xdg_config_dpath(), _ALIAS_REG_FNAME
     )

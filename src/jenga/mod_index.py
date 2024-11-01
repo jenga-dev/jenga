@@ -96,11 +96,10 @@ def read_mod_ini_file(ini_fpath: str) -> Dict[str, str]:
     metadata_section = False
     key_value_pairs = {}
     for line in ini_lines:
-        if metadata_section:
-            if "=" in line:
-                # split on the first occurrence of "="
-                key, value = line.split("=", 1)
-                key_value_pairs[key.strip().lower()] = value.strip()
+        if metadata_section and "=" in line:
+            # split on the first occurrence of "="
+            key, value = line.split("=", 1)
+            key_value_pairs[key.strip().lower()] = value.strip()
         if "[Metadata]" in line:
             metadata_section = True
     return key_value_pairs
@@ -159,7 +158,8 @@ def mod_info_from_dpath(
     hint_fpath = os.path.join(extracted_mod_dpath, JENGA_HINT_FNAME)
     hint = {}
     if os.path.exists(hint_fpath):
-        hint = json.load(open(hint_fpath, "r"))
+        with open(hint_fpath, "r") as f:
+            hint = json.load(f)
     aliases: List[str] = []
     if hint.get(JengaHintKey.ALIASES):
         aliases = hint[JengaHintKey.ALIASES]
@@ -262,9 +262,7 @@ def _is_likely_mod_dir_name(dir_name: str) -> bool:
         return False
     if lname == "docs":
         return False
-    if lname.endswith(".app"):
-        return False
-    return True
+    not lname.endswith(".app")
 
 
 def populate_mod_index_by_dpath(
@@ -291,7 +289,7 @@ def populate_mod_index_by_dpath(
                 mod_info = mod_info_from_dpath(handle.path)
                 # except Exception as e:
                 #     note_print(
-                #         f"Error while processing mod dir at {handle.path}: {e}"
+                #         f"Error processing mod dir at {handle.path}: {e}"
                 #         "\nSkipping this mod."
                 #     )
             if mod_info is not None:
@@ -301,7 +299,8 @@ def populate_mod_index_by_dpath(
                 # ir_revised and sr_revised, which confuse with aliases they
                 # shouldn't have, like "item_rev" and "spell_rev", respectively
                 archive_fname = mod_info.archive_fname
-                alias_fix = lambda alias: alias
+                def alias_fix(alias: str) -> str:
+                    return alias
                 if archive_fname is not None:
                     name_mapper_func = _get_name_mapper_func_by_archive_fname(
                         archive_fname

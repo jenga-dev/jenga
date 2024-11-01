@@ -1,6 +1,7 @@
 """Configuration control for jenga."""
 
 # stdlib imports
+import contextlib
 import os
 from typing import Optional, Union
 
@@ -71,10 +72,8 @@ def get_all_target_game_dirs() -> list[str]:
     """Get all game directories."""
     paths = []
     for key in GAME_DIR_PATHS_KEYS:
-        try:
+        with contextlib.suppress(KeyError):
             paths.append(CFG[key][CfgKey.TARGET])
-        except KeyError:
-            pass
     return paths
 
 
