@@ -69,3 +69,22 @@ jobs:
         run: pip install $(ls *.whl)
       - name: Try importing the package
         run: python -c "import jenga"
+
+  pypi-publish:
+    name: Publish 📦 to PyPI
+    needs: [build, install]
+    runs-on: ubuntu-latest
+    if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
+    environment:
+      name: pypi_publish
+      url: https://pypi.org/p/bg-jenga
+    permissions:
+      id_token: write
+    steps:
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: jenga_dist
+          path: dist
+      - name: Publish distribution 📦 to PyPI
+        uses: pypa/gh-action-pypi-publish@releasev1.11.0

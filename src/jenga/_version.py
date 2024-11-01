@@ -17,7 +17,7 @@ with open(_PATH_VERSION) as fopen:
 def _get_git_sha() -> str:
     from subprocess import DEVNULL, check_output
 
-    out = check_output(["git", "rev-parse", "--short", "HEAD"], stderr=DEVNULL)  # noqa: S603, S607
+    out = check_output(["git", "rev-parse", "--short", "HEAD"], stderr=DEVNULL)
     return out.decode("utf-8").strip()
 
 

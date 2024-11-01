@@ -1,69 +1,246 @@
 """Command line interface for the jenga package."""
 
+# stdlib imports
+from typing import Optional
+
+# 3rd party imports
 import typer
 from typing_extensions import Annotated
 
-from jenga import weidu_log_to_build_file
+# local imports
+from jenga import (
+    build_file_to_build_order_file,
+    extract_all_archives_in_zipped_mods_dir_to_extracted_mods_dir,
+    extract_some_archives_in_zipped_mods_dir_to_extracted_mods_dir,
+    load_aliases_registry_from_config_dir,
+    load_mod_index_from_config,
+    overwrite_game_dir_with_source_dir,
+    populate_mod_index_from_extracted_mods_dir,
+    print_config_info_box,
+    run_build,
+    weidu_log_to_json_build_file,
+    weidu_log_to_yaml_build_file,
+)
+from jenga import (
+    reorder_build_file_by_build_order_file as reorder_bfile_by_border_file,
+)
 
 app = typer.Typer()
 
 
 @app.command()
 def run_full_build(
-    build_file_path: str,
+    build_file_path: Annotated[
+        str, typer.Argument(help="The path to the build file.")
+    ],
 ) -> None:
-    """Run a full build of an BG:EET game.
-
-    Parameters
-    ----------
-    build_file_path : str
-        The path to the build file.
-
-    """
-    print(build_file_path)
+    """Run a full build of a modded BG:EET game."""
+    load_mod_index_from_config()
+    load_aliases_registry_from_config_dir()
+    run_build(
+        build_file_path=build_file_path,
+    )
 
 
 @app.command()
 def resume_partial_build(
-    build_file_path: str,
+    build_file_path: Annotated[
+        str, typer.Argument(help="The path to the build file.")
+    ],
+    state_file_path: Annotated[
+        Optional[str],
+        typer.Option(
+            help=(
+                "The path to the state file to resume from. If not provided, "
+                "the game directory will be searched for the most recent state"
+                " file for this build."
+            )
+        ),
+    ] = None,
 ) -> None:
-    """Resume a partial build of an BG:EET game.
-
-    Parameters
-    ----------
-    build_file_path : str
-        The path to the build file.
-
-    """
-    print(build_file_path)
+    """Resume a partial build of an BG:EET game."""
+    load_mod_index_from_config()
+    load_aliases_registry_from_config_dir()
+    run_build(
+        build_file_path=build_file_path,
+        state_file_path=state_file_path,
+        resume=True,
+    )
 
 
 @app.command()
-def convert_weidu_log_to_build_file(
-    weidu_log_path: str,
+def convert_weidu_log_to_json_build_file(
+    weidu_log_path: Annotated[
+        str, typer.Argument(help="The path to the WeiDU log file.")
+    ],
     build_file_path: Annotated[
-        str, typer.Option(help="The path to the json build file to create.")
+        Optional[str],
+        typer.Option(
+            help=(
+                "The path to the json build file to create. If not provided, "
+                "a file named '<date:time>_jenga_build_from_weidu_log.json' "
+                "will be created in the same directory as the WeiDU log file."
+            )
+        ),
     ] = None,
 ) -> None:
-    """Convert a WeiDU log file to a build file.
+    """Convert a WeiDU log file to a Jenga JSON build file."""
+    weidu_log_to_json_build_file(weidu_log_path, build_file_path)
 
-    Parameters
-    ----------
-    weidu_log_path : str
-        The path to the WeiDU log file.
-    build_file_path : str
-        The path to the build file to create.
+
+@app.command()
+def convert_weidu_log_to_yaml_build_file(
+    weidu_log_path: Annotated[
+        str, typer.Argument(help="The path to the WeiDU log file.")
+    ],
+    build_file_path: Annotated[
+        Optional[str],
+        typer.Option(
+            help=(
+                "The path to the yaml build file to create. If not provided, "
+                "a file named '<date:time>_jenga_build_from_weidu_log.yaml' "
+                "will be created in the same directory as the WeiDU log file."
+            )
+        ),
+    ] = None,
+) -> None:
+    """Convert a WeiDU log file to a Jenga YAML build file."""
+    weidu_log_to_yaml_build_file(weidu_log_path, build_file_path)
+
+
+@app.command()
+def convert_build_file_to_build_order_file(
+    build_file_path: Annotated[
+        str, typer.Argument(help="The path to the Jenga build file.")
+    ],
+    build_order_file_path: Annotated[
+        Optional[str],
+        typer.Option(
+            help=(
+                "The path to the build order file to create. If not provided, "
+                "a file named 'jenga_build_order_<build_file_name>.json' will"
+                " be created in the same directory as the build file."
+            )
+        ),
+    ] = None,
+) -> None:
+    """Convert a Jenga build file to a Jenga build order file."""
+    build_file_to_build_order_file(build_file_path, build_order_file_path)
+
+
+@app.command()
+def reorder_build_file_by_build_order_file(
+    build_file_path: Annotated[
+        str, typer.Argument(help="The path to the Jenga build file.")
+    ],
+    build_order_file_path: Annotated[
+        str, typer.Argument(help="The path to the Jenga build order file.")
+    ],
+    reordered_build_file_path: Annotated[
+        Optional[str],
+        typer.Option(
+            help=(
+                "The path to the reordered build file to create. If not "
+                "provided, a file named 'reordered_<build_file_name>.json' "
+                "will be created "
+                "in the same directory as the build file."
+            )
+        ),
+    ] = None,
+) -> None:
+    """Reorder a Jenga build file by a Jenga build order file."""
+    reorder_bfile_by_border_file(
+        build_file_path,
+        build_order_file_path,
+        reordered_build_file_path,
+    )
+
+
+@app.command()
+def extract_zipped_mods_to_extracted_mods() -> None:
+    """Extract all zipped mods to the extracted mods directory."""
+    extract_all_archives_in_zipped_mods_dir_to_extracted_mods_dir()
+
+
+@app.command()
+def extract_some_zipped_mods_to_extracted_mods(
+    archive_name_part: Annotated[
+        str,
+        typer.Argument(
+            help=(
+                "All archives with names containing this string will be "
+                "extracted."
+            )
+        ),
+    ],
+) -> None:
+    """Extract archives containing a given string to the extracted mods dir."""
+    extract_some_archives_in_zipped_mods_dir_to_extracted_mods_dir(
+        archive_name_part
+    )
+
+
+@app.command()
+def populate_mod_index(
+    verbose: Annotated[
+        Optional[bool],
+        typer.Option(
+            "--verbose",
+            "-v",
+            help="Print more information during the process.",
+        ),
+    ] = False,
+) -> None:
+    """Populate the mod index from the extracted mods directory."""
+    load_aliases_registry_from_config_dir()
+    populate_mod_index_from_extracted_mods_dir(verbose=verbose)
+
+
+@app.command()
+def extract_zipped_mods_and_populate_mod_index() -> None:
+    """Extract all zipped mods and populate the mod index."""
+    extract_all_archives_in_zipped_mods_dir_to_extracted_mods_dir()
+    load_aliases_registry_from_config_dir()
+    populate_mod_index_from_extracted_mods_dir()
+
+
+@app.command()
+def overwrite_game_dir_with_clean_source_dir(
+    game: Annotated[
+        str,
+        typer.Argument(
+            help="The game alias to overwrite the game directory for. E.g. "
+            "'BG2EE'."
+        ),
+    ],
+    eet: Annotated[
+        bool,
+        typer.Option(
+            "--eet",
+            help=(
+                "Use the configured EET-installed game directory as source, "
+                "rather than the configured clean game directory."
+            ),
+        ),
+    ] = False,
+) -> None:
+    """Overwrite the game directory with the clean source directory."""
+    game = game.strip("'")
+    if eet:
+        overwrite_game_dir_with_source_dir(game, "EET_SOURCE")
+    else:
+        overwrite_game_dir_with_source_dir(game, "CLEAN_SOURCE")
+
+
+@app.command()
+def print_configuration() -> None:
+    """Print the current Jenga configuration.
+
+    This shows the configuration as set by ~/.config/jenga/cfg.json and/or
+    valid JENGA__ prefixed environment variables.
 
     """
-    if build_file_path is None:
-        build_file_path = weidu_log_path.replace(".log", ".json")
-    print(
-        "Converting WeiDU log file in:\n"
-        f"{weidu_log_path}\n"
-        "to a Jenga .json build file in:\n"
-        f"{build_file_path}\n..."
-    )
-    weidu_log_to_build_file(weidu_log_path, build_file_path)
+    print_config_info_box()
 
 
 def cli():
