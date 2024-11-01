@@ -44,7 +44,7 @@ def oper_print(msg) -> None:
 
 
 def sccs_print(msg) -> None:
-    """Print a sucess message.
+    """Print a success message.
 
     Parameters
     ----------
