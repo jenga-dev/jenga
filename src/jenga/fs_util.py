@@ -109,9 +109,9 @@ def fuzzy_find_file_or_dir(
                 candidates.append(handle)
         if len(candidates) == 1:
             if setup_file_search and candidates[0].endswith(TP2_EXT):
-                    return os.path.join(directory, candidates[0])
+                return os.path.join(directory, candidates[0])
             if archive_search and candidates[0].endswith(ARCHIVE_EXT):
-                    return os.path.join(directory, candidates[0])
+                return os.path.join(directory, candidates[0])
         low_candidates = [cand.lower() for cand in candidates]
         if setup_file_search:
             low_candidates = [
@@ -338,7 +338,10 @@ def get_tp2_names_and_paths(
         A dictionary containing the names and paths of all .tp2 files.
 
     """
-    def _print(x): print(x) if verbose else None
+
+    def _print(x):
+        print(x) if verbose else None
+
     _print(f"Traversal starting at '{dir_path}'...")
     mod_tp2_fnames = {}
     for root, _, files in os.walk(dir_path):
@@ -1064,8 +1067,10 @@ def extract_some_archives_in_zipped_mods_dir_to_extracted_mods_dir(
     """Extract all archives in the zipped mods dir to the extracted dir."""
     zipped_dpath = demand_zipped_mod_cache_dir_path()
     extracted_dpath = demand_extracted_mod_cache_dir_path()
+
     def criteria(name: str) -> bool:
         return mod_name_part.lower() in name.lower()
+
     extract_zipped_mods_in_dir_to_dir(
         zipped_dpath,
         extracted_dpath,

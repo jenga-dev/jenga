@@ -209,6 +209,7 @@ def fuzzy_find(
 
     """
     if file_types is None:
+
         def _is_valid_entry(entry: str) -> bool:
             return True
     else:

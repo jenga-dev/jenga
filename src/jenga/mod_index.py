@@ -299,8 +299,10 @@ def populate_mod_index_by_dpath(
                 # ir_revised and sr_revised, which confuse with aliases they
                 # shouldn't have, like "item_rev" and "spell_rev", respectively
                 archive_fname = mod_info.archive_fname
+
                 def alias_fix(alias: str) -> str:
                     return alias
+
                 if archive_fname is not None:
                     name_mapper_func = _get_name_mapper_func_by_archive_fname(
                         archive_fname
