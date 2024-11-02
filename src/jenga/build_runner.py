@@ -1281,3 +1281,7 @@ def run_build(
                 sccs_print(f"Build state saved to {new_state_file_path}")
                 print_goodbye()
                 sys.exit(0)
+    full_line_marker()
+    sccs_print("All mods installed successfully.")
+    print_goodbye()
+    sys.exit(0)

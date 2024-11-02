@@ -262,7 +262,7 @@ def _is_likely_mod_dir_name(dir_name: str) -> bool:
         return False
     if lname == "docs":
         return False
-    not lname.endswith(".app")
+    return not lname.endswith(".app")
 
 
 def populate_mod_index_by_dpath(
