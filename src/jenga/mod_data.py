@@ -211,7 +211,7 @@ def load_aliases_registry_from_config_dir() -> None:
         with open(REV_ALIAS_REGISTRY_FPATH, "r") as f:
             MOD_TO_ALIAS_LIST_REGISTRY = json.load(f)
         sccs_print(
-            "Loaded reversed mod alias registry from the config " "directory."
+            "Loaded reversed mod alias registry from the config directory."
         )
     else:
         note_print(
@@ -238,7 +238,7 @@ def clear_alias_registries_from_config_dir() -> None:
     if os.path.exists(REV_ALIAS_REGISTRY_FPATH):
         os.remove(REV_ALIAS_REGISTRY_FPATH)
         sccs_print(
-            "Cleared reversed mod alias registry from the config " "directory."
+            "Cleared reversed mod alias registry from the config directory."
         )
     else:
         note_print(
