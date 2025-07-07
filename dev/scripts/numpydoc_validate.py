@@ -81,7 +81,7 @@ def get_npdoc_val_report(object_name) -> bool:
         print(f"\nnumpydoc validation results for {object_name}:")
         print(f"A total of {nerrors} errors were found")
         print(
-            f"Out of which {nsoft-nhide} are soft errors"
+            f"Out of which {nsoft - nhide} are soft errors"
             f", (an additional {nhide} errors were hidden)."
         )
         for line in report_lines:

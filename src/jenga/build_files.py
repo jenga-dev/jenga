@@ -161,7 +161,7 @@ def build_file_to_build_order_file(
         for mod in build_order:
             build_order_file.write(f"{mod}\n")
     sccs_print(
-        "Build order extracted and written to:\n" f"{build_order_file_path}\n"
+        f"Build order extracted and written to:\n{build_order_file_path}\n"
     )
 
 
@@ -390,6 +390,5 @@ def reorder_build_file_by_build_order_file(
             )
 
     sccs_print(
-        "Build file reordered and written to:\n"
-        f"{reordered_build_file_path}\n"
+        f"Build file reordered and written to:\n{reordered_build_file_path}\n"
     )

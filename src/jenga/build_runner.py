@@ -981,8 +981,7 @@ def run_build(
         if uninstall or force_uninstall:
             if installed_mods_info is None:
                 fail_print(
-                    "Cannot uninstall mod without installed mods "
-                    "information."
+                    "Cannot uninstall mod without installed mods information."
                 )
                 write_ongoing_state(
                     build_name, i - 1, mod_name, new_state_file_path
@@ -1006,7 +1005,7 @@ def run_build(
                 note_print(f"Build state saved to {new_state_file_path}")
                 sys.exit(1)
 
-        log_file = f'setup-{mod_name.lower().replace(" ", "_")}.debug'
+        log_file = f"setup-{mod_name.lower().replace(' ', '_')}.debug"
         log_file = os.path.join(game_install_dir, log_file)
 
         # Update Weidu.conf with the language if necessary
@@ -1030,7 +1029,7 @@ def run_build(
                 target_mod_dir = os.path.join(game_install_dir, mod_dir_name)
                 tp2_fpath = mod_info.tp2_fpath
                 oper_print(
-                    f"Found mod {mod_name} in the mod index:\n" f"{mod_info}\n"
+                    f"Found mod {mod_name} in the mod index:\n{mod_info}\n"
                 )
                 if copy_to_target_dir:
                     safe_copy_dir_to_game_dir(mod_dir, target_mod_dir)
