@@ -65,7 +65,7 @@ def get_mod_name_by_alias(alias: str) -> Optional[str]:
         The name of the mod if the alias exists, otherwise None.
 
     """
-    return ALIAS_TO_MOD_REGISTRY.get(alias.lower(), None)
+    return ALIAS_TO_MOD_REGISTRY.get(alias.lower())
 
 
 # build the reverse alias registry
